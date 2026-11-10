@@ -420,7 +420,7 @@ mark { background: #FFF1A8; color: inherit; border-radius: 2px; padding: 0 1px; 
   transform: translate(-50%, 12px);
   z-index: 60;
   background: rgba(21,24,30,.92); color: #fff;
-  font-size: 13.5px; font-weight: 600; 
+  font-size: 13.5px; font-weight: 600;
   padding: 11px 16px; border-radius: 10px;
   opacity: 0; pointer-events: none;
   transition: opacity .2s, transform .2s;
@@ -468,6 +468,25 @@ mark { background: #FFF1A8; color: inherit; border-radius: 2px; padding: 0 1px; 
 .detail-orig { margin-top: 2px; font-size: 13px; color: var(--ink-3); }
 .dotsep { width: 2px; height: 2px; border-radius: 50%; background: #C3C7CE; }
 
+/* ---------- map notice (카카오맵 진단) ---------- */
+.map-notice {
+  position: absolute; left: 12px; right: 12px; top: 150px; z-index: 25;
+  background: #FFF4F4; border: 1px solid #F5C2C4; border-radius: 10px;
+  padding: 10px 34px 10px 12px; font-size: 12.5px; color: #8A1F24;
+  display: flex; flex-direction: column; gap: 2px; box-shadow: var(--shadow-1);
+}
+.map-notice b { font-size: 13px; }
+.map-notice button { position: absolute; top: 4px; right: 6px; width: 28px; height: 28px; font-size: 18px; color: #8A1F24; }
+
+/* ---------- my location ---------- */
+.ctrl--me svg { fill: none; stroke: var(--ink-2); stroke-linejoin: round; }
+.ctrl--me.is-active svg { fill: var(--primary); stroke: var(--primary); }
+.me-dot { position: absolute; width: 18px; height: 18px; margin: -9px 0 0 -9px; pointer-events: none; z-index: 4; }
+.me-dot.me-dot--kakao { position: relative; margin: 0; }
+.me-dot::before { content: ""; position: absolute; inset: -14px; border-radius: 50%; background: rgba(36,87,245,.18); animation: mePulse 2s ease-out infinite; }
+.me-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--primary); border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+@keyframes mePulse { 0% { transform: scale(.5); opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
+
 </style>
 </head>
 <body>
@@ -499,6 +518,7 @@ mark { background: #FFF1A8; color: inherit; border-radius: 2px; padding: 0 1px; 
       <div class="map-controls" id="mapControls">
         <button class="ctrl" id="zoomIn" data-i18n-aria="map.zoomIn"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
         <button class="ctrl" id="zoomOut" data-i18n-aria="map.zoomOut"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+        <button class="ctrl ctrl--me" id="locateMe" data-i18n-aria="map.locate"><svg viewBox="0 0 24 24"><path d="M20.5 3.5 3.5 10.6l7 2.9 2.9 7 7.1-17Z"/></svg></button>
         <button class="ctrl ctrl--home" id="recenter" data-i18n-aria="map.recenter"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/><circle cx="12" cy="12" r="7"/></svg></button>
       </div>
 
@@ -703,7 +723,8 @@ window.BIZGUILD_I18N = {
       "lang.title": "언어 선택",
       "search.placeholder": "가게, 메뉴 검색",
       "search.clear": "검색어 지우기",
-      "map.zoomIn": "확대", "map.zoomOut": "축소", "map.recenter": "성덕고로 이동",
+      "map.zoomIn": "확대", "map.zoomOut": "축소", "map.recenter": "성덕고로 이동", "map.locate": "내 위치",
+      "loc.denied": "위치 권한이 꺼져 있어요. 설정에서 Safari 위치 접근을 허용해 주세요.", "loc.unavailable": "현재 위치를 찾을 수 없어요.",
       "sort.label": "정렬", "sort.default": "기본순", "sort.priceAsc": "가격 낮은순", "sort.priceDesc": "가격 높은순",
       "filter.priceLabel": "대표가",
       "price.all": "전체 가격", "price.5000": "5천 원 이하", "price.10000": "1만 원 이하", "price.15000": "1만 5천 원 이하",
@@ -738,7 +759,8 @@ window.BIZGUILD_I18N = {
       "lang.title": "Language",
       "search.placeholder": "Search places or menus",
       "search.clear": "Clear search",
-      "map.zoomIn": "Zoom in", "map.zoomOut": "Zoom out", "map.recenter": "Go to Seongdeok HS",
+      "map.zoomIn": "Zoom in", "map.zoomOut": "Zoom out", "map.recenter": "Go to Seongdeok HS", "map.locate": "My location",
+      "loc.denied": "Location access is off. Allow it in your browser settings.", "loc.unavailable": "Couldn't find your location.",
       "sort.label": "Sort", "sort.default": "Default", "sort.priceAsc": "Price: low to high", "sort.priceDesc": "Price: high to low",
       "filter.priceLabel": "Price",
       "price.all": "Any price", "price.5000": "Under ₩5,000", "price.10000": "Under ₩10,000", "price.15000": "Under ₩15,000",
@@ -773,7 +795,8 @@ window.BIZGUILD_I18N = {
       "lang.title": "选择语言",
       "search.placeholder": "搜索店铺或菜单",
       "search.clear": "清除",
-      "map.zoomIn": "放大", "map.zoomOut": "缩小", "map.recenter": "回到 Seongdeok 高中",
+      "map.zoomIn": "放大", "map.zoomOut": "缩小", "map.recenter": "回到 Seongdeok 高中", "map.locate": "我的位置",
+      "loc.denied": "位置权限已关闭，请在浏览器设置中允许。", "loc.unavailable": "无法获取当前位置。",
       "sort.label": "排序", "sort.default": "默认", "sort.priceAsc": "价格从低到高", "sort.priceDesc": "价格从高到低",
       "filter.priceLabel": "代表价",
       "price.all": "全部价格", "price.5000": "₩5,000 以下", "price.10000": "₩10,000 以下", "price.15000": "₩15,000 以下",
@@ -808,7 +831,8 @@ window.BIZGUILD_I18N = {
       "lang.title": "言語を選択",
       "search.placeholder": "お店・メニューを検索",
       "search.clear": "クリア",
-      "map.zoomIn": "拡大", "map.zoomOut": "縮小", "map.recenter": "ソンドク高校へ移動",
+      "map.zoomIn": "拡大", "map.zoomOut": "縮小", "map.recenter": "ソンドク高校へ移動", "map.locate": "現在地",
+      "loc.denied": "位置情報がオフです。ブラウザの設定で許可してください。", "loc.unavailable": "現在地を取得できません。",
       "sort.label": "並び替え", "sort.default": "標準", "sort.priceAsc": "価格が安い順", "sort.priceDesc": "価格が高い順",
       "filter.priceLabel": "代表価格",
       "price.all": "すべての価格", "price.5000": "₩5,000以下", "price.10000": "₩10,000以下", "price.15000": "₩15,000以下",
@@ -1049,7 +1073,9 @@ window.BizguildMaps.schematic = {
     const mkLayer = root.querySelector('[data-layer="markers"]');
 
     let term = s => s;
-    let markers = [], landmarks = [];
+    let markers = [], landmarks = [], me = null;
+    const meEl = document.createElement("div");
+    meEl.className = "me-dot";
     const size = () => { const r = root.getBoundingClientRect(); return { w: r.width, h: r.height }; };
     const view = { cx: 0, cy: 0, s: 1 };
 
@@ -1101,6 +1127,7 @@ window.BizguildMaps.schematic = {
         const p = toScreen(m.lat, m.lng);
         el.style.left = p.x + "px"; el.style.top = p.y + "px";
       });
+      if (me) { const p = toScreen(me.lat, me.lng); meEl.style.left = p.x + "px"; meEl.style.top = p.y + "px"; }
       lmLayer.querySelectorAll("[data-lm]").forEach((el, i) => {
         const l = landmarks[i]; if (!l) return;
         const p = toScreen(l.lat, l.lng);
@@ -1222,6 +1249,7 @@ window.BizguildMaps.schematic = {
         const ty = targetY == null ? h / 2 : targetY;
         animateTo({ cx: p.x, cy: p.y - (ty - h / 2) / s, s });
       },
+      setUser(lat, lng) { me = { lat, lng }; if (!meEl.parentNode) mkLayer.parentNode.insertBefore(meEl, mkLayer); place(); },
       zoomIn() { const { w, h } = size(); zoomAt(1.4, w / 2, h / 2); },
       zoomOut() { const { w, h } = size(); zoomAt(1 / 1.4, w / 2, h / 2); },
       relayout() { clampView(); apply(); }
@@ -1268,10 +1296,9 @@ window.BizguildMaps.kakao = {
 
     const map = new K.Map(box, {
       center: new K.LatLng(opts.start.lat, opts.start.lng),
-            level: opts.start.kakaoLevel || 4,
+      level: opts.start.kakaoLevel || 4,
       tileAnimation: false
-            });
-
+    });
 
     const labelLevel = opts.labelLevel || 3;
     const syncLabels = () => root.classList.toggle("show-labels", map.getLevel() <= labelLevel);
@@ -1344,6 +1371,15 @@ window.BizguildMaps.kakao = {
         if (zoom === "close" && map.getLevel() > labelLevel) map.setLevel(labelLevel);
         if (zoom === "area") map.setLevel(opts.start.kakaoLevel || 4);
         panToTarget(lat, lng, targetY);
+      },
+      setUser(lat, lng) {
+        const pos = new K.LatLng(lat, lng);
+        if (!this._me) {
+          const el = document.createElement("div");
+          el.className = "me-dot me-dot--kakao";
+          this._me = new K.CustomOverlay({ position: pos, content: el, xAnchor: 0.5, yAnchor: 0.5, zIndex: 20 });
+          this._me.setMap(map);
+        } else this._me.setPosition(pos);
       },
       zoomIn() { map.setLevel(map.getLevel() - 1, { animate: { duration: 150 } }); },
       zoomOut() { map.setLevel(map.getLevel() + 1, { animate: { duration: 150 } }); },
@@ -1624,6 +1660,25 @@ window.BizguildMaps.kakao = {
     map && map.focus(sc.lat, sc.lng, { targetY: focusTargetY(), zoom: "area" });
   }
 
+  /* 내 위치: 버튼을 누를 때만 권한 요청, 이후 위치 따라가며 점 갱신 */
+  let myPos = null, watchId = null;
+  function locateMe() {
+    if (!navigator.geolocation) { toast(t("loc.unavailable")); return; }
+    if (myPos) { map.focus(myPos.lat, myPos.lng, { targetY: focusTargetY(), zoom: "close" }); }
+    if (watchId !== null) return;
+    let first = !myPos;
+    watchId = navigator.geolocation.watchPosition(p => {
+      myPos = { lat: p.coords.latitude, lng: p.coords.longitude };
+      map.setUser(myPos.lat, myPos.lng);
+      $("#locateMe").classList.add("is-active");
+      if (first) { first = false; map.focus(myPos.lat, myPos.lng, { targetY: focusTargetY(), zoom: "close" }); }
+    }, err => {
+      navigator.geolocation.clearWatch(watchId); watchId = null;
+      $("#locateMe").classList.remove("is-active");
+      toast(err.code === 1 ? t("loc.denied") : t("loc.unavailable"));
+    }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 });
+  }
+
   async function initMap() {
     const root = $("#map");
     const opts = {
@@ -1637,10 +1692,11 @@ window.BizguildMaps.kakao = {
       try { map = await BizguildMaps.kakao.create(root, opts); }
       catch (e) {
         console.warn("[BIZGUILD] 카카오맵을 불러오지 못해 개략도로 표시합니다:", e.message);
-                const note = document.createElement("div");
-        note.style.cssText = "position:absolute;left:12px;right:12px;top:150px;z-index:25;background:#FFF4F4;border:1px solid #F5C2C4;border-radius:10px;padding:10px 12px;font-size:13px;color:#8A1F24;";
-        note.textContent = "카카오맵 연결 실패: " + e.message + " / 현재 도메인: " + location.origin;
-        note.onclick = () => note.remove();
+        /* 진단 표시: 콘솔을 볼 수 없는 기기용 */
+        const note = document.createElement("div");
+        note.className = "map-notice";
+        note.innerHTML = `<b>카카오맵 연결 실패</b><span>${esc(e.message)}</span><span>현재 도메인: ${esc(location.origin)}</span><button type="button" aria-label="닫기">×</button>`;
+        note.querySelector("button").addEventListener("click", () => note.remove());
         $("#view-map").appendChild(note);
         root.classList.remove("is-kakao");
         $$(".kakao-map", root).forEach(n => n.remove());
@@ -1653,6 +1709,7 @@ window.BizguildMaps.kakao = {
     $("#zoomIn").addEventListener("click", () => map.zoomIn());
     $("#zoomOut").addEventListener("click", () => map.zoomOut());
     $("#recenter").addEventListener("click", recenterSchool);
+    $("#locateMe").addEventListener("click", locateMe);
   }
 
   /* ---------------- 바텀시트 ---------------- */
