@@ -420,7 +420,7 @@ mark { background: #FFF1A8; color: inherit; border-radius: 2px; padding: 0 1px; 
   transform: translate(-50%, 12px);
   z-index: 60;
   background: rgba(21,24,30,.92); color: #fff;
-  font-size: 13.5px; font-weight: 600;
+  font-size: 13.5px; font-weight: 600; 
   padding: 11px 16px; border-radius: 10px;
   opacity: 0; pointer-events: none;
   transition: opacity .2s, transform .2s;
@@ -429,7 +429,7 @@ mark { background: #FFF1A8; color: inherit; border-radius: 2px; padding: 0 1px; 
 .toast.is-show { opacity: 1; transform: translate(-50%, 0); }
 
 /* ---------- kakao map ---------- */
-.map.is-kakao { cursor: default; touch-action: auto; }
+.map.is-kakao, .kakao-map { cursor: default; touch-action: none; }
 .kakao-map { position: absolute; left: 0; right: 0; top: 0; bottom: 134px; }
 .marker.marker--kakao { position: relative; transform: none; left: auto; top: auto; }
 .landmark.landmark--kakao { position: relative; transform: none; }
@@ -1268,8 +1268,8 @@ window.BizguildMaps.kakao = {
 
     const map = new K.Map(box, {
       center: new K.LatLng(opts.start.lat, opts.start.lng),
-      level: opts.start.kakaoLevel || 4
-    });
+            level: opts.start.kakaoLevel || 4,
+      tileAnimation: false
 
     const labelLevel = opts.labelLevel || 3;
     const syncLabels = () => root.classList.toggle("show-labels", map.getLevel() <= labelLevel);
@@ -1343,8 +1343,8 @@ window.BizguildMaps.kakao = {
         if (zoom === "area") map.setLevel(opts.start.kakaoLevel || 4);
         panToTarget(lat, lng, targetY);
       },
-      zoomIn() { map.setLevel(map.getLevel() - 1, { animate: { duration: 250 } }); },
-      zoomOut() { map.setLevel(map.getLevel() + 1, { animate: { duration: 250 } }); },
+      zoomIn() { map.setLevel(map.getLevel() - 1, { animate: { duration: 150 } }); },
+      zoomOut() { map.setLevel(map.getLevel() + 1, { animate: { duration: 150 } }); },
       relayout() { map.relayout(); }
     };
   }
