@@ -1,0 +1,1973 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>BIZGUILD MAP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+/* =========================================================
+ * BIZGUILD MAP — 스타일
+ * ========================================================= */
+:root {
+  --primary: #2457F5;
+  --primary-weak: #EAF0FF;
+  --ink: #15181E;
+  --ink-2: #474D57;
+  --ink-3: #868C96;
+  --line: #E7E9ED;
+  --bg: #F5F6F8;
+  --surface: #FFFFFF;
+  --danger: #E5484D;
+  --open: #12A150;
+
+  --c-food: #F2683C;
+  --c-cafe: #8A5A3B;
+  --c-conv: #13A05A;
+  --c-snack: #E5447A;
+
+  --map-land: #F3F2EE;
+  --map-block: #E8E6DF;
+  --map-park: #D9ECCD;
+  --map-road: #FFFFFF;
+  --map-road-edge: #DAD6CB;
+  --map-main: #FFF7DD;
+  --map-main-edge: #E8D9A6;
+
+  --radius: 14px;
+  --shadow-1: 0 1px 2px rgba(15, 20, 30, .08), 0 2px 8px rgba(15, 20, 30, .08);
+  --shadow-2: 0 -2px 16px rgba(15, 20, 30, .10);
+  --tabbar-h: 60px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+}
+
+[hidden] { display: none !important; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; margin: 0; }
+body {
+  font-family: "Pretendard", "Noto Sans KR", -apple-system, "Apple SD Gothic Neo", "PingFang SC", "Hiragino Sans", "Microsoft YaHei", "Yu Gothic", sans-serif;
+  color: var(--ink);
+  background: #DADDE2;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  overscroll-behavior: none;
+}
+button, input, select, textarea { font: inherit; color: inherit; letter-spacing: inherit; }
+button { cursor: pointer; border: 0; background: none; padding: 0; }
+svg { display: block; }
+
+#app {
+  position: relative;
+  max-width: 480px;
+  height: 100%;
+  height: 100dvh;
+  margin: 0 auto;
+  background: var(--surface);
+  overflow: hidden;
+  box-shadow: 0 0 40px rgba(0,0,0,.08);
+}
+
+/* ---------- views ---------- */
+.view {
+  position: absolute;
+  inset: 0 0 calc(var(--tabbar-h) + var(--safe-b)) 0;
+  display: none;
+}
+.view.is-active { display: block; }
+
+/* ---------- map ---------- */
+.map {
+  position: absolute; inset: 0;
+  background: var(--map-land);
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+.map.is-dragging { cursor: grabbing; }
+.map-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.map-layer { position: absolute; inset: 0; pointer-events: none; }
+
+.map-svg .block { fill: var(--map-block); }
+.map-svg .park { fill: var(--map-park); }
+.map-svg .school-ground { fill: #E4EBFB; stroke: #C9D6F5; stroke-width: 1.5; }
+.map-svg .road-edge { fill: none; stroke: var(--map-road-edge); stroke-linecap: round; stroke-linejoin: round; }
+.map-svg .road { fill: none; stroke: var(--map-road); stroke-linecap: round; stroke-linejoin: round; }
+.map-svg .main-edge { fill: none; stroke: var(--map-main-edge); stroke-linecap: round; }
+.map-svg .main { fill: none; stroke: var(--map-main); stroke-linecap: round; }
+.map-svg .subway { fill: none; stroke: #996CAC; stroke-width: 3; stroke-dasharray: 10 6; opacity: .55; }
+.map-svg .road-label {
+  font-size: 11px; font-weight: 600; fill: #9A927D;
+  paint-order: stroke; stroke: var(--map-land); stroke-width: 3px;
+}
+.map-svg .park-label { font-size: 10px; font-weight: 600; fill: #6E9A5B; }
+
+/* landmarks */
+.landmark {
+  position: absolute; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  pointer-events: none;
+}
+.landmark .lm-dot {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 11px; font-weight: 800; color: #fff;
+  border: 2px solid #fff; box-shadow: var(--shadow-1);
+}
+.landmark--station .lm-dot { background: #996CAC; }
+.landmark--school .lm-dot { background: var(--primary); width: 26px; height: 26px; }
+.landmark--school .lm-dot svg { width: 14px; height: 14px; fill: #fff; }
+.landmark .lm-name {
+  font-size: 11.5px; font-weight: 700; color: var(--ink);
+  white-space: nowrap;
+  text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff;
+}
+.landmark--school .lm-name { color: var(--primary); font-size: 12.5px; font-weight: 800; }
+
+/* store markers */
+.marker {
+  position: absolute; left: 0; top: 0;
+  transform: translate(-50%, -100%);
+  pointer-events: auto;
+  display: flex; flex-direction: column; align-items: center;
+  transition: opacity .15s;
+}
+.marker .pin {
+  position: relative;
+  width: 30px; height: 30px; border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: var(--mc);
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,.22);
+  display: grid; place-items: center;
+  transition: transform .15s ease;
+}
+.marker .pin svg { width: 15px; height: 15px; transform: rotate(45deg); fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.marker .m-label {
+  order: -1;
+  margin-bottom: 4px;
+  padding: 3px 8px; border-radius: 999px;
+  background: #fff; color: var(--ink);
+  font-size: 11.5px; font-weight: 700; white-space: nowrap;
+  box-shadow: var(--shadow-1);
+  display: none;
+}
+.show-labels .marker .m-label { display: block; }
+.marker.is-selected { z-index: 5; }
+.marker.is-selected .pin { transform: rotate(-45deg) scale(1.28); box-shadow: 0 4px 12px rgba(0,0,0,.3); }
+.marker.is-selected .m-label { display: block; background: var(--ink); color: #fff; }
+.marker.is-fav .pin::after {
+  content: ""; position: absolute; top: -4px; right: -4px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #FFC21A; border: 2px solid #fff;
+}
+.marker.is-dim { opacity: .35; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: absolute; left: 0; right: 0; top: 0;
+  padding: calc(10px + var(--safe-t)) 12px 6px;
+  z-index: 20;
+  pointer-events: none;
+}
+.topbar > * { pointer-events: auto; }
+.search {
+  display: flex; align-items: center; gap: 8px;
+  height: 48px; padding: 0 8px 0 10px;
+  background: #fff; border-radius: 12px;
+  box-shadow: var(--shadow-1);
+}
+.brand-mark { width: 30px; height: 30px; border-radius: 8px; background: var(--primary); color: #fff; display: grid; place-items: center; flex: none; }
+.brand-mark svg { width: 18px; height: 18px; color: #fff; }
+.search input {
+  flex: 1; min-width: 0; height: 100%;
+  border: 0; outline: 0; background: transparent;
+  font-size: 16px; font-weight: 500;
+}
+.search input::placeholder { color: var(--ink-3); font-weight: 400; }
+.search input::-webkit-search-cancel-button { display: none; }
+.icon-btn { width: 32px; height: 32px; display: grid; place-items: center; color: #C3C7CE; }
+.icon-btn svg { width: 18px; height: 18px; }
+
+.chips {
+  display: flex; gap: 6px; margin-top: 8px;
+  overflow-x: auto; scrollbar-width: none;
+  margin-left: -12px; margin-right: -12px; padding: 0 12px 2px;
+}
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex: none; display: inline-flex; align-items: center; gap: 5px;
+  height: 34px; padding: 0 13px;
+  border-radius: 999px; background: #fff;
+  font-size: 13.5px; font-weight: 600; color: var(--ink-2);
+  box-shadow: var(--shadow-1);
+  white-space: nowrap;
+}
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cc, var(--ink-3)); }
+.chip.is-on { background: var(--ink); color: #fff; }
+.chip.is-on .dot { box-shadow: 0 0 0 2px rgba(255,255,255,.35); }
+.chips--sub { margin-top: 6px; }
+.chips--sub .chip { height: 30px; font-size: 12.5px; padding: 0 11px; }
+.chips--sub .chip.is-on { background: var(--primary); }
+.chip-label { flex: none; align-self: center; font-size: 11.5px; font-weight: 700; color: var(--ink-2); background: rgba(255,255,255,.88); padding: 4px 8px; border-radius: 6px; }
+
+/* ---------- map controls ---------- */
+.map-controls {
+  position: absolute; right: 12px; z-index: 15;
+  display: flex; flex-direction: column; gap: 8px;
+  transition: bottom .25s ease, opacity .2s;
+}
+.ctrl {
+  width: 40px; height: 40px; border-radius: 10px; background: #fff;
+  box-shadow: var(--shadow-1); display: grid; place-items: center;
+}
+.ctrl svg { width: 20px; height: 20px; fill: none; stroke: var(--ink-2); stroke-width: 2; stroke-linecap: round; }
+.ctrl--home svg { stroke: var(--primary); }
+.map-controls.is-hidden { opacity: 0; pointer-events: none; }
+
+/* ---------- bottom sheet ---------- */
+.sheet {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  z-index: 30;
+  background: #fff;
+  border-radius: 18px 18px 0 0;
+  box-shadow: var(--shadow-2);
+  display: flex; flex-direction: column;
+  height: 150px;
+  transition: height .28s cubic-bezier(.2,.8,.2,1);
+}
+.sheet.is-dragging { transition: none; }
+.sheet-grip { flex: none; touch-action: none; cursor: grab; padding-top: 8px; }
+.grip-bar { display: block; width: 36px; height: 4px; border-radius: 4px; background: #D5D8DD; margin: 0 auto 8px; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 2px 16px 10px; }
+.sheet-title { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.sheet-title strong { font-size: 17px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.count { font-size: 15px; font-weight: 800; color: var(--primary); }
+.sort { position: relative; display: flex; align-items: center; flex: none; }
+.sort select {
+  appearance: none; -webkit-appearance: none;
+  border: 1px solid var(--line); background: #fff; border-radius: 8px;
+  height: 32px; padding: 0 28px 0 10px;
+  font-size: 13px; font-weight: 600; color: var(--ink-2);
+  outline: 0;
+}
+.sort svg { position: absolute; right: 8px; width: 14px; height: 14px; pointer-events: none; fill: none; stroke: var(--ink-3); stroke-width: 2; }
+.sheet-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; border-top: 1px solid var(--line); overscroll-behavior: contain; }
+
+/* ---------- store list ---------- */
+.store-list { list-style: none; margin: 0; padding: 0; }
+.store {
+  display: flex; gap: 12px; align-items: center;
+  padding: 14px 16px; border-bottom: 1px solid #F0F1F3;
+  cursor: pointer;
+}
+.store:active { background: #F7F8FA; }
+.store-ico {
+  flex: none; width: 44px; height: 44px; border-radius: 12px;
+  background: color-mix(in srgb, var(--mc) 12%, #fff);
+  display: grid; place-items: center;
+}
+.store-ico svg { width: 22px; height: 22px; fill: none; stroke: var(--mc); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.store-main { flex: 1; min-width: 0; }
+.store-name { display: flex; align-items: center; gap: 6px; font-size: 15.5px; font-weight: 700; }
+.store-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.store-meta { margin-top: 3px; font-size: 12.5px; color: var(--ink-3); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.store-meta .sep { width: 2px; height: 2px; border-radius: 50%; background: #C3C7CE; }
+.store-menu { margin-top: 4px; font-size: 13px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.store-side { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.price-tag { font-size: 14px; font-weight: 800; }
+.price-tag small { font-size: 11px; font-weight: 600; color: var(--ink-3); margin-right: 3px; }
+.fav-btn { width: 32px; height: 32px; display: grid; place-items: center; margin-right: -6px; }
+.fav-btn svg { width: 21px; height: 21px; fill: none; stroke: #B9BEC6; stroke-width: 1.8; stroke-linejoin: round; transition: transform .15s; }
+.fav-btn.is-on svg { fill: #FFC21A; stroke: #FFC21A; }
+.fav-btn:active svg { transform: scale(.85); }
+
+.badge { font-style: normal; display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 5px; font-size: 11px; font-weight: 700; flex: none; }
+.badge--tag { background: var(--primary-weak); color: var(--primary); }
+.badge--cat { background: color-mix(in srgb, var(--mc) 12%, #fff); color: var(--mc); }
+.status { font-weight: 700; }
+.status--open { color: var(--open); }
+.status--closed { color: var(--danger); }
+
+mark { background: #FFF1A8; color: inherit; border-radius: 2px; padding: 0 1px; }
+
+/* ---------- empty ---------- */
+.empty { text-align: center; padding: 36px 24px 40px; }
+.empty-ico { width: 52px; height: 52px; border-radius: 50%; background: var(--bg); display: grid; place-items: center; margin: 0 auto 12px; }
+.empty-ico svg { width: 24px; height: 24px; fill: none; stroke: var(--ink-3); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.empty-title { margin: 0; font-weight: 700; font-size: 15px; }
+.empty-desc { margin: 6px 0 16px; color: var(--ink-3); font-size: 13.5px; }
+
+/* ---------- detail ---------- */
+.sheet-detail { position: absolute; inset: 0; background: #fff; border-radius: 18px 18px 0 0; display: flex; flex-direction: column; }
+.sheet-detail[hidden] { display: none; }
+.detail-top { flex: none; touch-action: none; padding-top: 8px; cursor: grab; }
+.detail-bar { display: flex; align-items: center; justify-content: space-between; padding: 0 8px 4px; }
+.detail-bar .icon-btn { color: var(--ink-2); width: 40px; height: 40px; }
+.detail-bar .icon-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.detail-scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 0 16px 24px; }
+.detail-head { padding: 0 0 16px; border-bottom: 1px solid var(--line); }
+.detail-cat { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
+.detail-name { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+.detail-sub { margin-top: 6px; font-size: 13.5px; color: var(--ink-3); display: flex; gap: 6px; align-items: center; }
+.detail-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.act {
+  height: 42px; border-radius: 10px; border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 14px; font-weight: 700; color: var(--ink-2);
+}
+.act svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.act.is-on { color: #C98A00; border-color: #FFE29A; background: #FFF9E6; }
+.act.is-on svg { fill: #FFC21A; stroke: #FFC21A; }
+
+.info { list-style: none; margin: 0; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.info li { display: flex; gap: 12px; padding: 10px 0; font-size: 14px; align-items: flex-start; }
+.info .k { flex: none; width: 20px; height: 20px; margin-top: 1px; }
+.info .k svg { width: 20px; height: 20px; fill: none; stroke: var(--ink-3); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.info .v { flex: 1; line-height: 1.45; }
+.info .v small { display: block; color: var(--ink-3); font-size: 12.5px; }
+.copy-btn { flex: none; font-size: 12.5px; font-weight: 700; color: var(--primary); padding: 2px 4px; }
+
+.menu-sec h3 { font-size: 16px; font-weight: 800; margin: 18px 0 6px; display: flex; justify-content: space-between; align-items: baseline; }
+.menu-sec h3 small { font-size: 12px; color: var(--ink-3); font-weight: 500; }
+.menu-list { list-style: none; margin: 0; padding: 0; }
+.menu-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid #F0F1F3; font-size: 14.5px; }
+.menu-list li:last-child { border-bottom: 0; }
+.menu-list .mp { font-weight: 800; white-space: nowrap; }
+.menu-list .cheap { font-size: 10.5px; font-weight: 800; color: var(--primary); background: var(--primary-weak); padding: 2px 5px; border-radius: 4px; margin-left: 6px; vertical-align: 1px; }
+.data-note { margin: 16px 0 0; font-size: 12px; color: var(--ink-3); line-height: 1.5; }
+
+/* ---------- pages (fav / report) ---------- */
+.page { background: var(--bg); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.page-head { position: sticky; top: 0; z-index: 2; background: #fff; padding: calc(18px + var(--safe-t)) 18px 14px; border-bottom: 1px solid var(--line); }
+.page-head h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+.page-sub { margin: 4px 0 0; color: var(--ink-3); font-size: 13.5px; }
+.page-body { padding: 12px 0 28px; }
+#favList { background: #fff; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+#favList:empty { display: none; }
+
+.form { background: #fff; padding: 18px 18px 20px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.field { margin-bottom: 18px; }
+.field label, .field .label { display: block; font-size: 13.5px; font-weight: 700; color: var(--ink-2); margin-bottom: 8px; }
+.field em { color: var(--danger); font-style: normal; }
+.form input[type="text"], .form textarea {
+  width: 100%; border: 1px solid #DDE0E5; border-radius: 10px;
+  padding: 12px 13px; font-size: 16px; background: #fff; outline: 0;
+  transition: border-color .15s, box-shadow .15s;
+}
+.form textarea { resize: none; line-height: 1.5; }
+.form input:focus, .form textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(36,87,245,.12); }
+.form .is-invalid { border-color: var(--danger) !important; }
+.field-err { margin: 6px 0 0; font-size: 12.5px; color: var(--danger); min-height: 0; }
+.field-err:empty { display: none; }
+.row2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px; }
+.input-suffix { position: relative; }
+.input-suffix input { padding-right: 30px !important; }
+.input-suffix span { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-3); font-size: 14px; }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.seg--3 { grid-template-columns: repeat(3, 1fr); }
+.seg button {
+  height: 42px; border-radius: 10px; border: 1px solid #DDE0E5; background: #fff;
+  font-size: 14px; font-weight: 600; color: var(--ink-2);
+}
+.seg button.is-on { border-color: var(--primary); background: var(--primary-weak); color: var(--primary); font-weight: 700; }
+.seg.is-invalid button { border-color: #F3B6B8; }
+
+.btn { height: 44px; padding: 0 18px; border-radius: 10px; font-weight: 700; font-size: 14.5px; }
+.btn--primary { background: var(--primary); color: #fff; }
+.btn--primary:active { background: #1B47D6; }
+.btn--ghost { border: 1px solid var(--line); background: #fff; color: var(--ink-2); }
+.btn--block { width: 100%; height: 52px; font-size: 16px; }
+.form-note { margin: 10px 0 0; text-align: center; font-size: 12px; color: var(--ink-3); }
+
+.my-reports { margin-top: 16px; }
+.my-reports h2 { font-size: 14px; font-weight: 800; color: var(--ink-2); margin: 0 18px 8px; }
+.my-reports ul { list-style: none; margin: 0; padding: 0; background: #fff; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.rep { padding: 14px 18px; border-bottom: 1px solid #F0F1F3; }
+.rep:last-child { border-bottom: 0; }
+.rep-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.rep-name { font-weight: 700; font-size: 15px; }
+.rep-status { font-size: 11.5px; font-weight: 700; color: #B26B00; background: #FFF4DB; padding: 3px 7px; border-radius: 5px; flex: none; }
+.rep-meta { margin-top: 4px; font-size: 12.5px; color: var(--ink-3); }
+
+/* ---------- tab bar ---------- */
+.tabbar {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 40;
+  height: calc(var(--tabbar-h) + var(--safe-b));
+  padding-bottom: var(--safe-b);
+  background: #fff; border-top: 1px solid var(--line);
+  display: grid; grid-template-columns: repeat(3, 1fr);
+}
+.tab { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: #A3A8B1; font-size: 11px; font-weight: 600; }
+.tab svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linejoin: round; stroke-linecap: round; }
+.tab.is-active { color: var(--ink); }
+.tab.is-active svg { stroke-width: 2.2; }
+.tab-badge {
+  position: absolute; top: 7px; left: calc(50% + 7px);
+  min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px;
+  background: var(--primary); color: #fff; font-size: 10px; font-weight: 800; font-style: normal;
+  display: grid; place-items: center; border: 2px solid #fff; box-sizing: content-box;
+}
+.tab-badge[hidden] { display: none; }
+
+/* ---------- toast ---------- */
+.toast {
+  position: absolute; left: 50%; bottom: calc(var(--tabbar-h) + var(--safe-b) + 16px);
+  transform: translate(-50%, 12px);
+  z-index: 60;
+  background: rgba(21,24,30,.92); color: #fff;
+  font-size: 13.5px; font-weight: 600;
+  padding: 11px 16px; border-radius: 10px;
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s, transform .2s;
+  white-space: nowrap;
+}
+.toast.is-show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- kakao map ---------- */
+.map.is-kakao { cursor: default; touch-action: auto; }
+.kakao-map { position: absolute; left: 0; right: 0; top: 0; bottom: 134px; }
+.marker.marker--kakao { position: relative; transform: none; left: auto; top: auto; }
+.landmark.landmark--kakao { position: relative; transform: none; }
+
+/* ---------- language ---------- */
+.lang-btn {
+  flex: none; display: inline-flex; align-items: center; gap: 4px;
+  height: 32px; padding: 0 9px 0 7px; border-radius: 8px;
+  background: var(--bg); color: var(--ink-2);
+  font-size: 12.5px; font-weight: 800;
+}
+.lang-btn svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.lang-btn--line { background: #fff; border: 1px solid var(--line); }
+.page-head-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+.modal { position: absolute; inset: 0; z-index: 80; }
+.modal-backdrop { position: absolute; inset: 0; background: rgba(15,20,30,.4); animation: fade .2s ease; }
+.modal-panel {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: #fff; border-radius: 18px 18px 0 0;
+  padding: 8px 0 calc(16px + var(--safe-b));
+  animation: up .24s cubic-bezier(.2,.8,.2,1);
+}
+.modal-panel h2 { margin: 4px 20px 8px; font-size: 17px; font-weight: 800; }
+.lang-list { list-style: none; margin: 0; padding: 0; }
+.lang-opt {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  padding: 15px 20px; font-size: 16px; font-weight: 600; text-align: left;
+}
+.lang-opt:active { background: var(--bg); }
+.lang-opt.is-on { color: var(--primary); font-weight: 800; }
+.lang-opt svg { width: 20px; height: 20px; fill: none; stroke: var(--primary); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+@keyframes fade { from { opacity: 0; } }
+@keyframes up { from { transform: translateY(100%); } }
+
+.detail-orig { margin-top: 2px; font-size: 13px; color: var(--ink-3); }
+.dotsep { width: 2px; height: 2px; border-radius: 50%; background: #C3C7CE; }
+
+</style>
+</head>
+<body>
+  <div id="app">
+
+    <!-- ===================== 지도 탭 ===================== -->
+    <section class="view is-active" id="view-map" data-view="map">
+      <!-- 지도: map-kakao.js 또는 map-schematic.js 가 이 안을 채움 -->
+      <div class="map" id="map"></div>
+
+      <div class="topbar" id="topbar">
+        <div class="search">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 2.5c-4 0-7 3-7 6.9 0 5 7 12.1 7 12.1s7-7.1 7-12.1c0-3.9-3-6.9-7-6.9Z" fill="currentColor"/><circle cx="12" cy="9.5" r="2.6" fill="#fff"/></svg>
+          </div>
+          <input id="searchInput" type="search" data-i18n-ph="search.placeholder" data-i18n-aria="search.placeholder" autocomplete="off" enterkeyhint="search" />
+          <button class="icon-btn search-clear" id="searchClear" data-i18n-aria="search.clear" hidden>
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="currentColor"/><path d="m9 9 6 6m0-6-6 6" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+          <button class="lang-btn" data-lang-open data-i18n-aria="lang.title">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.3 2.4 3.4 5.2 3.4 8.5s-1.1 6.1-3.4 8.5c-2.3-2.4-3.4-5.2-3.4-8.5s1.1-6.1 3.4-8.5Z"/></svg>
+            <span data-lang-short>KO</span>
+          </button>
+        </div>
+        <div class="chips" id="categoryChips" role="tablist"></div>
+        <div class="chips chips--sub" id="priceChips"></div>
+      </div>
+
+      <div class="map-controls" id="mapControls">
+        <button class="ctrl" id="zoomIn" data-i18n-aria="map.zoomIn"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button class="ctrl" id="zoomOut" data-i18n-aria="map.zoomOut"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+        <button class="ctrl ctrl--home" id="recenter" data-i18n-aria="map.recenter"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/><circle cx="12" cy="12" r="7"/></svg></button>
+      </div>
+
+      <div class="sheet" id="sheet" data-state="peek">
+        <div class="sheet-grip" id="sheetGrip">
+          <span class="grip-bar"></span>
+          <div class="sheet-head">
+            <div class="sheet-title">
+              <strong id="resultTitle"></strong>
+              <span id="resultCount" class="count">0</span>
+            </div>
+            <label class="sort">
+              <select id="sortSelect" data-i18n-aria="sort.label">
+                <option value="default" data-i18n="sort.default"></option>
+                <option value="priceAsc" data-i18n="sort.priceAsc"></option>
+                <option value="priceDesc" data-i18n="sort.priceDesc"></option>
+              </select>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>
+            </label>
+          </div>
+        </div>
+        <div class="sheet-body">
+          <ul class="store-list" id="storeList"></ul>
+          <div class="empty" id="listEmpty" hidden>
+            <div class="empty-ico"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg></div>
+            <p class="empty-title" data-i18n="empty.title"></p>
+            <p class="empty-desc" data-i18n="empty.desc"></p>
+            <button class="btn btn--ghost" id="resetFilters" data-i18n="empty.reset"></button>
+          </div>
+        </div>
+        <div class="sheet-detail" id="detail" hidden></div>
+      </div>
+    </section>
+
+    <!-- ===================== 즐겨찾기 탭 ===================== -->
+    <section class="view page" id="view-fav" data-view="fav">
+      <header class="page-head">
+        <div class="page-head-row">
+          <h1 data-i18n="fav.title"></h1>
+          <button class="lang-btn lang-btn--line" data-lang-open data-i18n-aria="lang.title">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.3 2.4 3.4 5.2 3.4 8.5s-1.1 6.1-3.4 8.5c-2.3-2.4-3.4-5.2-3.4-8.5s1.1-6.1 3.4-8.5Z"/></svg>
+            <span data-lang-short>KO</span>
+          </button>
+        </div>
+        <p class="page-sub" id="favSub"></p>
+      </header>
+      <div class="page-body">
+        <ul class="store-list" id="favList"></ul>
+        <div class="empty" id="favEmpty" hidden>
+          <div class="empty-ico"><svg viewBox="0 0 24 24"><path d="m12 3.6 2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.6 9.7l5.8-.8Z"/></svg></div>
+          <p class="empty-title" data-i18n="fav.emptyTitle"></p>
+          <p class="empty-desc" data-i18n="fav.emptyDesc"></p>
+          <button class="btn btn--ghost" data-go="map" data-i18n="fav.find"></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== 제보 탭 ===================== -->
+    <section class="view page" id="view-report" data-view="report">
+      <header class="page-head">
+        <div class="page-head-row">
+          <h1 data-i18n="report.title"></h1>
+          <button class="lang-btn lang-btn--line" data-lang-open data-i18n-aria="lang.title">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.3 2.4 3.4 5.2 3.4 8.5s-1.1 6.1-3.4 8.5c-2.3-2.4-3.4-5.2-3.4-8.5s1.1-6.1 3.4-8.5Z"/></svg>
+            <span data-lang-short>KO</span>
+          </button>
+        </div>
+        <p class="page-sub" data-i18n="report.sub"></p>
+      </header>
+      <div class="page-body">
+        <form class="form" id="reportForm" novalidate>
+          <div class="field">
+            <label for="rName"><span data-i18n="report.name"></span> <em>*</em></label>
+            <input id="rName" name="name" type="text" maxlength="30" data-i18n-ph="report.namePh" />
+            <p class="field-err" data-err="name"></p>
+          </div>
+          <div class="field">
+            <span class="label"><span data-i18n="report.category"></span> <em>*</em></span>
+            <div class="seg" id="rCategory" role="radiogroup"></div>
+            <p class="field-err" data-err="category"></p>
+          </div>
+          <div class="field">
+            <span class="label"><span data-i18n="report.area"></span> <em>*</em></span>
+            <div class="seg seg--3" id="rArea" role="radiogroup"></div>
+            <p class="field-err" data-err="area"></p>
+          </div>
+          <div class="field">
+            <label for="rAddress"><span data-i18n="report.address"></span> <em>*</em></label>
+            <input id="rAddress" name="address" type="text" maxlength="60" data-i18n-ph="report.addressPh" />
+            <p class="field-err" data-err="address"></p>
+          </div>
+          <div class="field">
+            <span class="label" data-i18n="report.menu"></span>
+            <div class="row2">
+              <input id="rMenu" name="menu" type="text" maxlength="20" data-i18n-ph="report.menuPh" />
+              <div class="input-suffix">
+                <input id="rPrice" name="price" type="text" inputmode="numeric" maxlength="7" data-i18n-ph="report.pricePh" />
+                <span data-i18n="currency.suffix"></span>
+              </div>
+            </div>
+            <p class="field-err" data-err="price"></p>
+          </div>
+          <div class="field">
+            <label for="rHours" data-i18n="report.hours"></label>
+            <input id="rHours" name="hours" type="text" maxlength="30" data-i18n-ph="report.hoursPh" />
+          </div>
+          <div class="field">
+            <label for="rNote" data-i18n="report.note"></label>
+            <textarea id="rNote" name="note" rows="3" maxlength="200" data-i18n-ph="report.notePh"></textarea>
+          </div>
+          <button type="submit" class="btn btn--primary btn--block" data-i18n="report.submit"></button>
+          <p class="form-note" data-i18n="report.formNote"></p>
+        </form>
+
+        <section class="my-reports" id="myReports" hidden>
+          <h2 data-i18n="report.mine"></h2>
+          <ul id="reportList"></ul>
+        </section>
+      </div>
+    </section>
+
+    <!-- ===================== 하단 탭바 ===================== -->
+    <nav class="tabbar">
+      <button class="tab is-active" data-go="map">
+        <svg viewBox="0 0 24 24"><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4Z"/><path d="M9 4v14M15 6v14"/></svg>
+        <span data-i18n="tab.map"></span>
+      </button>
+      <button class="tab" data-go="fav">
+        <svg viewBox="0 0 24 24"><path d="m12 3.6 2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.6 9.7l5.8-.8Z"/></svg>
+        <span data-i18n="tab.fav"></span>
+        <i class="tab-badge" id="favBadge" hidden></i>
+      </button>
+      <button class="tab" data-go="report">
+        <svg viewBox="0 0 24 24"><path d="M12 20s-6.5-5.7-6.5-10.6A6.5 6.5 0 0 1 18.5 9.4C18.5 14.3 12 20 12 20Z"/><path d="M12 6.8v5.4M9.3 9.5h5.4"/></svg>
+        <span data-i18n="tab.report"></span>
+      </button>
+    </nav>
+
+    <!-- 언어 선택 시트 -->
+    <div class="modal" id="langSheet" hidden>
+      <div class="modal-backdrop" data-lang-close></div>
+      <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="langTitle">
+        <span class="grip-bar"></span>
+        <h2 id="langTitle" data-i18n="lang.title"></h2>
+        <ul class="lang-list" id="langList"></ul>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </div>
+
+  <!-- 설정 → 언어 → 데이터 → 어댑터 → 지도 → 화면 -->
+  <script>
+/* ===== js/config.js ===== */
+/* =========================================================
+ * BIZGUILD MAP — 설정
+ * ---------------------------------------------------------
+ * 카카오맵 연결 방법
+ *  1) https://developers.kakao.com → 내 애플리케이션 → 앱 만들기
+ *  2) 앱 설정 > 앱 키 > "JavaScript 키" 복사 → 아래 KAKAO_JS_KEY 에 붙여넣기
+ *  3) 앱 설정 > 플랫폼 > Web > 사이트 도메인 등록
+ *     예) https://아이디.github.io , http://localhost:5500
+ *  4) 카카오맵 사용 설정(제품 설정 > 카카오맵) 활성화
+ *
+ * 키가 비어 있거나 카카오맵을 불러오지 못하면 개략도 지도로 자동 전환됩니다.
+ * ========================================================= */
+window.BIZGUILD_CONFIG = {
+  /* "auto" = 키가 있으면 카카오맵, 없으면 개략도 / "kakao" / "schematic" */
+  MAP_PROVIDER: "auto",
+  KAKAO_JS_KEY: "f68775c505be7793e91766d6a63a9f04",
+
+  /* 지도 첫 화면 중심 (성덕고) 과 확대 수준 (카카오 level: 숫자가 작을수록 확대) */
+  START: { lat: 37.5478, lng: 127.1468, kakaoLevel: 4 },
+
+  /* 이 확대 수준 이하에서 가게 이름표를 항상 표시 */
+  KAKAO_LABEL_LEVEL: 3
+};
+
+</script>
+  <script>
+/* ===== js/i18n.js ===== */
+/* =========================================================
+ * BIZGUILD MAP — 다국어 사전
+ * - UI: 화면 문구
+ * - TERMS: 데이터 속 고정 단어(카테고리·지역·태그·휴무일 등)
+ * 새 언어 추가: LANGS 에 항목 추가 + UI/TERMS 에 같은 키로 번역 추가
+ * 가게 이름/메뉴 번역은 data.js 의 name_xx / menu_xx 칸에서 관리
+ * ========================================================= */
+window.BIZGUILD_I18N = {
+  LANGS: [
+    { code: "ko", label: "한국어",   short: "KO" },
+    { code: "en", label: "English",  short: "EN" },
+    { code: "zh", label: "中文(简体)", short: "中" },
+    { code: "ja", label: "日本語",   short: "日" }
+  ],
+  DEFAULT: "ko",
+  /* 가게 이름·메뉴 번역이 없을 때 대신 쓸 언어 */
+  DATA_FALLBACK: { en: ["en"], zh: ["en"], ja: ["en"], ko: [] },
+
+  UI: {
+    ko: {
+      "lang.title": "언어 선택",
+      "search.placeholder": "가게, 메뉴 검색",
+      "search.clear": "검색어 지우기",
+      "map.zoomIn": "확대", "map.zoomOut": "축소", "map.recenter": "성덕고로 이동",
+      "sort.label": "정렬", "sort.default": "기본순", "sort.priceAsc": "가격 낮은순", "sort.priceDesc": "가격 높은순",
+      "filter.priceLabel": "대표가",
+      "price.all": "전체 가격", "price.5000": "5천 원 이하", "price.10000": "1만 원 이하", "price.15000": "1만 5천 원 이하",
+      "list.nearby": "주변 가게", "list.search": "‘{q}’ 검색 결과",
+      "empty.title": "조건에 맞는 가게가 없어요", "empty.desc": "검색어나 필터를 바꿔 보세요.", "empty.reset": "필터 초기화",
+      "card.rep": "대표",
+      "status.open": "영업 중", "status.closed": "영업 종료", "status.dayoff": "오늘 휴무", "status.24h": "24시간 영업",
+      "fav.add": "즐겨찾기 추가", "fav.remove": "즐겨찾기 해제",
+      "toast.favAdded": "즐겨찾기에 추가했어요", "toast.favRemoved": "즐겨찾기에서 해제했어요",
+      "toast.copied": "주소를 복사했어요", "toast.reported": "제보가 접수됐어요. 고마워요!",
+      "detail.back": "목록으로", "detail.saved": "저장됨", "detail.fav": "즐겨찾기", "detail.copy": "주소 복사",
+      "detail.repMenu": "대표 메뉴 {p}", "detail.menuCount": "메뉴 {n}개", "detail.closed": "휴무: {d}",
+      "detail.menu": "메뉴", "detail.priceNote": "가격은 변동될 수 있어요", "detail.repBadge": "대표",
+      "detail.dataNote": "시범 버전의 가상 데이터입니다. 정보가 다르면 ‘제보’ 탭으로 알려주세요.",
+      "fav.title": "즐겨찾기", "fav.sub": "저장한 가게 {n}곳",
+      "fav.emptyTitle": "아직 즐겨찾기한 가게가 없어요", "fav.emptyDesc": "가게 정보에서 ☆를 눌러 저장하세요.", "fav.find": "지도에서 찾기",
+      "report.title": "새 가게 제보", "report.sub": "지도에 없는 가게를 알려주세요. 확인 후 반영돼요.",
+      "report.name": "가게 이름", "report.namePh": "예) 성덕 떡볶이",
+      "report.category": "카테고리", "report.area": "가까운 곳",
+      "report.address": "주소 또는 위치 설명", "report.addressPh": "예) 명일역 2번 출구 앞 골목",
+      "report.menu": "대표 메뉴 · 가격", "report.menuPh": "메뉴 이름", "report.pricePh": "가격",
+      "report.hours": "영업시간", "report.hoursPh": "예) 11:00-21:00, 일요일 휴무",
+      "report.note": "한마디", "report.notePh": "학생 할인, 추천 메뉴 등",
+      "report.submit": "제보하기", "report.formNote": "현재는 시범 운영 중이라 제보 내용이 이 기기에만 저장돼요.",
+      "report.mine": "내 제보 내역", "report.pending": "검토 대기",
+      "err.name": "가게 이름을 입력해 주세요.", "err.category": "카테고리를 선택해 주세요.", "err.area": "가까운 곳을 선택해 주세요.",
+      "err.address": "주소나 위치를 알려주세요.", "err.menuName": "메뉴 이름도 함께 입력해 주세요.", "err.price": "메뉴 가격을 입력해 주세요.",
+      "tab.map": "지도", "tab.fav": "즐겨찾기", "tab.report": "제보",
+      "currency.suffix": "원"
+    },
+    en: {
+      "lang.title": "Language",
+      "search.placeholder": "Search places or menus",
+      "search.clear": "Clear search",
+      "map.zoomIn": "Zoom in", "map.zoomOut": "Zoom out", "map.recenter": "Go to Seongdeok HS",
+      "sort.label": "Sort", "sort.default": "Default", "sort.priceAsc": "Price: low to high", "sort.priceDesc": "Price: high to low",
+      "filter.priceLabel": "Price",
+      "price.all": "Any price", "price.5000": "Under ₩5,000", "price.10000": "Under ₩10,000", "price.15000": "Under ₩15,000",
+      "list.nearby": "Nearby places", "list.search": "Results for ‘{q}’",
+      "empty.title": "No places match", "empty.desc": "Try another keyword or filter.", "empty.reset": "Reset filters",
+      "card.rep": "Main",
+      "status.open": "Open", "status.closed": "Closed", "status.dayoff": "Closed today", "status.24h": "Open 24h",
+      "fav.add": "Add to favorites", "fav.remove": "Remove from favorites",
+      "toast.favAdded": "Added to favorites", "toast.favRemoved": "Removed from favorites",
+      "toast.copied": "Address copied", "toast.reported": "Thanks! Your tip was submitted.",
+      "detail.back": "Back to list", "detail.saved": "Saved", "detail.fav": "Favorite", "detail.copy": "Copy address",
+      "detail.repMenu": "Main dish {p}", "detail.menuCount": "{n} items", "detail.closed": "Closed: {d}",
+      "detail.menu": "Menu", "detail.priceNote": "Prices may change", "detail.repBadge": "Main",
+      "detail.dataNote": "Sample data for the pilot version. If anything is wrong, let us know in the Report tab.",
+      "fav.title": "Favorites", "fav.sub": "{n} saved",
+      "fav.emptyTitle": "No favorites yet", "fav.emptyDesc": "Tap ☆ on a place to save it.", "fav.find": "Find on map",
+      "report.title": "Report a new place", "report.sub": "Tell us about a place missing from the map. We'll add it after review.",
+      "report.name": "Place name", "report.namePh": "e.g. Seongdeok Tteokbokki",
+      "report.category": "Category", "report.area": "Nearby",
+      "report.address": "Address or directions", "report.addressPh": "e.g. Alley by Myeongil Stn. Exit 2",
+      "report.menu": "Main dish · Price", "report.menuPh": "Dish name", "report.pricePh": "Price",
+      "report.hours": "Hours", "report.hoursPh": "e.g. 11:00-21:00, closed Sun",
+      "report.note": "Comment", "report.notePh": "Student discounts, must-try dishes…",
+      "report.submit": "Submit", "report.formNote": "During the pilot, reports are saved only on this device.",
+      "report.mine": "My reports", "report.pending": "In review",
+      "err.name": "Please enter the place name.", "err.category": "Please choose a category.", "err.area": "Please choose a nearby area.",
+      "err.address": "Please enter an address or directions.", "err.menuName": "Please add the dish name too.", "err.price": "Please enter the price.",
+      "tab.map": "Map", "tab.fav": "Favorites", "tab.report": "Report",
+      "currency.suffix": "₩"
+    },
+    zh: {
+      "lang.title": "选择语言",
+      "search.placeholder": "搜索店铺或菜单",
+      "search.clear": "清除",
+      "map.zoomIn": "放大", "map.zoomOut": "缩小", "map.recenter": "回到 Seongdeok 高中",
+      "sort.label": "排序", "sort.default": "默认", "sort.priceAsc": "价格从低到高", "sort.priceDesc": "价格从高到低",
+      "filter.priceLabel": "代表价",
+      "price.all": "全部价格", "price.5000": "₩5,000 以下", "price.10000": "₩10,000 以下", "price.15000": "₩15,000 以下",
+      "list.nearby": "附近店铺", "list.search": "“{q}”的搜索结果",
+      "empty.title": "没有符合条件的店铺", "empty.desc": "请尝试其他关键词或筛选条件。", "empty.reset": "重置筛选",
+      "card.rep": "代表",
+      "status.open": "营业中", "status.closed": "已打烊", "status.dayoff": "今日休息", "status.24h": "24小时营业",
+      "fav.add": "加入收藏", "fav.remove": "取消收藏",
+      "toast.favAdded": "已加入收藏", "toast.favRemoved": "已取消收藏",
+      "toast.copied": "已复制地址", "toast.reported": "提交成功，谢谢！",
+      "detail.back": "返回列表", "detail.saved": "已收藏", "detail.fav": "收藏", "detail.copy": "复制地址",
+      "detail.repMenu": "代表菜品 {p}", "detail.menuCount": "共 {n} 项", "detail.closed": "休息日：{d}",
+      "detail.menu": "菜单", "detail.priceNote": "价格可能变动", "detail.repBadge": "代表",
+      "detail.dataNote": "试用版示例数据。如信息有误，请通过“报告”页告诉我们。",
+      "fav.title": "收藏", "fav.sub": "已收藏 {n} 家",
+      "fav.emptyTitle": "还没有收藏的店铺", "fav.emptyDesc": "在店铺详情中点击 ☆ 即可收藏。", "fav.find": "在地图上查找",
+      "report.title": "报告新店铺", "report.sub": "告诉我们地图上没有的店铺，审核后会添加。",
+      "report.name": "店铺名称", "report.namePh": "例：Seongdeok 炒年糕",
+      "report.category": "类别", "report.area": "附近位置",
+      "report.address": "地址或位置说明", "report.addressPh": "例：Myeongil站 2号出口旁的小巷",
+      "report.menu": "代表菜品 · 价格", "report.menuPh": "菜品名称", "report.pricePh": "价格",
+      "report.hours": "营业时间", "report.hoursPh": "例：11:00-21:00，周日休息",
+      "report.note": "备注", "report.notePh": "学生优惠、推荐菜品等",
+      "report.submit": "提交", "report.formNote": "试运营期间，报告内容仅保存在本设备上。",
+      "report.mine": "我的报告", "report.pending": "审核中",
+      "err.name": "请输入店铺名称。", "err.category": "请选择类别。", "err.area": "请选择附近位置。",
+      "err.address": "请输入地址或位置说明。", "err.menuName": "请同时输入菜品名称。", "err.price": "请输入价格。",
+      "tab.map": "地图", "tab.fav": "收藏", "tab.report": "报告",
+      "currency.suffix": "₩"
+    },
+    ja: {
+      "lang.title": "言語を選択",
+      "search.placeholder": "お店・メニューを検索",
+      "search.clear": "クリア",
+      "map.zoomIn": "拡大", "map.zoomOut": "縮小", "map.recenter": "ソンドク高校へ移動",
+      "sort.label": "並び替え", "sort.default": "標準", "sort.priceAsc": "価格が安い順", "sort.priceDesc": "価格が高い順",
+      "filter.priceLabel": "代表価格",
+      "price.all": "すべての価格", "price.5000": "₩5,000以下", "price.10000": "₩10,000以下", "price.15000": "₩15,000以下",
+      "list.nearby": "周辺のお店", "list.search": "「{q}」の検索結果",
+      "empty.title": "条件に合うお店がありません", "empty.desc": "キーワードやフィルターを変えてみてください。", "empty.reset": "フィルターをリセット",
+      "card.rep": "代表",
+      "status.open": "営業中", "status.closed": "営業時間外", "status.dayoff": "本日定休日", "status.24h": "24時間営業",
+      "fav.add": "お気に入りに追加", "fav.remove": "お気に入りから削除",
+      "toast.favAdded": "お気に入りに追加しました", "toast.favRemoved": "お気に入りから削除しました",
+      "toast.copied": "住所をコピーしました", "toast.reported": "投稿しました。ありがとうございます！",
+      "detail.back": "一覧に戻る", "detail.saved": "保存済み", "detail.fav": "お気に入り", "detail.copy": "住所をコピー",
+      "detail.repMenu": "代表メニュー {p}", "detail.menuCount": "メニュー {n}件", "detail.closed": "定休日：{d}",
+      "detail.menu": "メニュー", "detail.priceNote": "価格は変わる場合があります", "detail.repBadge": "代表",
+      "detail.dataNote": "試作版のサンプルデータです。内容が違う場合は「投稿」タブからお知らせください。",
+      "fav.title": "お気に入り", "fav.sub": "保存したお店 {n}件",
+      "fav.emptyTitle": "お気に入りはまだありません", "fav.emptyDesc": "お店の詳細で ☆ をタップして保存できます。", "fav.find": "地図で探す",
+      "report.title": "新しいお店を投稿", "report.sub": "地図にないお店を教えてください。確認後に反映します。",
+      "report.name": "店名", "report.namePh": "例）ソンドク トッポッキ",
+      "report.category": "カテゴリー", "report.area": "近くの場所",
+      "report.address": "住所または場所の説明", "report.addressPh": "例）ミョンイル駅2番出口前の路地",
+      "report.menu": "代表メニュー・価格", "report.menuPh": "メニュー名", "report.pricePh": "価格",
+      "report.hours": "営業時間", "report.hoursPh": "例）11:00-21:00、日曜定休",
+      "report.note": "ひとこと", "report.notePh": "学生割引、おすすめメニューなど",
+      "report.submit": "投稿する", "report.formNote": "試験運用中のため、投稿内容はこの端末にのみ保存されます。",
+      "report.mine": "自分の投稿", "report.pending": "確認待ち",
+      "err.name": "店名を入力してください。", "err.category": "カテゴリーを選んでください。", "err.area": "近くの場所を選んでください。",
+      "err.address": "住所または場所を入力してください。", "err.menuName": "メニュー名も入力してください。", "err.price": "価格を入力してください。",
+      "tab.map": "地図", "tab.fav": "お気に入り", "tab.report": "投稿",
+      "currency.suffix": "₩"
+    }
+  },
+
+  /* 데이터 고정 단어: 한국어 원문 → 언어별 표기 */
+  TERMS: {
+    "전체":   { en: "All", zh: "全部", ja: "すべて" },
+    "식당":   { en: "Restaurant", zh: "餐厅", ja: "レストラン" },
+    "카페":   { en: "Café", zh: "咖啡厅", ja: "カフェ" },
+    "편의점": { en: "Convenience", zh: "便利店", ja: "コンビニ" },
+    "간식":   { en: "Snacks", zh: "小吃", ja: "軽食" },
+
+    "굽은다리역": { en: "Gubeundari Stn.", zh: "Gubeundari站", ja: "クブンダリ駅" },
+    "명일역":     { en: "Myeongil Stn.", zh: "Myeongil站", ja: "ミョンイル駅" },
+    "성덕고 앞":  { en: "Near Seongdeok HS", zh: "Seongdeok高中前", ja: "ソンドク高校前" },
+    "성덕고등학교": { en: "Seongdeok High School", zh: "Seongdeok高中", ja: "ソンドク高校" },
+
+    "학생 단골":   { en: "Student favorite", zh: "学生常去", ja: "学生に人気" },
+    "혼밥 가능":   { en: "Solo-friendly", zh: "适合一人用餐", ja: "一人でもOK" },
+    "인기":        { en: "Popular", zh: "人气", ja: "人気" },
+    "가성비":      { en: "Great value", zh: "性价比高", ja: "コスパ良し" },
+    "공부하기 좋음": { en: "Good for studying", zh: "适合学习", ja: "勉強向き" },
+    "콘센트 많음": { en: "Many outlets", zh: "插座多", ja: "コンセント多め" },
+    "24시":        { en: "24h", zh: "24小时", ja: "24時間" },
+    "겨울 한정":   { en: "Winter only", zh: "冬季限定", ja: "冬季限定" },
+
+    "24시간":    { en: "24 hours", zh: "24小时", ja: "24時間" },
+    "연중무휴":  { en: "Open every day", zh: "全年无休", ja: "年中無休" },
+    "일요일":    { en: "Sun", zh: "周日", ja: "日曜日" },
+    "월요일":    { en: "Mon", zh: "周一", ja: "月曜日" },
+    "화요일":    { en: "Tue", zh: "周二", ja: "火曜日" },
+    "토·일요일": { en: "Sat & Sun", zh: "周六、周日", ja: "土・日曜日" },
+
+    "명일로":   { en: "Myeongil-ro", zh: "Myeongil-ro", ja: "ミョンイル路" },
+    "양재대로": { en: "Yangjae-daero", zh: "Yangjae-daero", ja: "ヤンジェ大路" },
+    "고덕로":   { en: "Godeok-ro", zh: "Godeok-ro", ja: "コドク路" },
+    "성덕길":   { en: "Seongdeok-gil", zh: "Seongdeok-gil", ja: "ソンドク通り" },
+    "어린이공원": { en: "Children's Park", zh: "儿童公园", ja: "児童公園" }
+  }
+};
+
+</script>
+  <script>
+/* ===== js/data.js ===== */
+/* =========================================================
+ * BIZGUILD MAP — 가게 데이터 (가상 데이터 20개)
+ * ---------------------------------------------------------
+ * 구글 스프레드시트 전환 가이드
+ *  - 아래 STORE_ROWS 한 줄 = 시트의 한 행(row)입니다.
+ *  - 시트 1행(헤더)을 STORE_COLUMNS 와 같은 이름으로 만들면
+ *    data-source.js 의 loadStores() 만 바꿔서 그대로 연결됩니다.
+ *  - menu 칸 형식:  메뉴명:가격 ; 메뉴명:가격   (세미콜론 구분)
+ *  - lat / lng 는 카카오 지도 연결 시 그대로 사용합니다.
+ *  - 번역 칸: name_en / menu_en (메뉴 이름만, menu 칸과 같은 순서)
+ *    중국어·일본어는 name_zh / menu_zh, name_ja / menu_ja 칸을
+ *    추가하면 자동 인식됩니다. 비어 있으면 영어 → 한국어 순으로 표시.
+ * ========================================================= */
+
+window.BIZGUILD_DATA = {
+  STORE_COLUMNS: [
+    "id", "name", "category", "area", "address",
+    "hours", "closed", "lat", "lng", "price", "menu", "tag",
+    "name_en", "menu_en"
+  ],
+
+  /* 카테고리: 식당 | 카페 | 편의점 | 간식
+     area   : 굽은다리역 | 명일역 | 성덕고 앞
+     price  : 대표 메뉴 1인 기준 가격(원) — 가격 필터·정렬 기준 */
+  STORE_ROWS: [
+    ["S01","한끼분식","식당","성덕고 앞","서울 강동구 성덕길 12 (가상)","10:00-21:00","일요일",37.5480,127.1458,3500,"라면:3500;김밥:3000;떡볶이:4000;돈가스:7000","학생 단골","Hankki Bunsik","Ramyeon;Gimbap;Tteokbokki;Pork cutlet"],
+    ["S02","든든국밥 명일점","식당","명일역","서울 강동구 명일로 101 (가상)","07:00-22:00","연중무휴",37.5507,127.1451,9000,"순대국밥:9000;뼈해장국:10000;공기밥:1000","혼밥 가능","Deundeun Gukbap (Myeongil)","Sundae gukbap;Pork bone soup;Extra rice"],
+    ["S03","굽은다리 돈가스","식당","굽은다리역","서울 강동구 구천면로 210 (가상)","11:00-21:30","월요일",37.5460,127.1416,9500,"등심돈가스:9500;치즈돈가스:11000;우동:6500","","Gubeundari Donkatsu","Pork loin cutlet;Cheese cutlet;Udon"],
+    ["S04","마라하우스","식당","굽은다리역","서울 강동구 구천면로 188 (가상)","11:00-22:00","연중무휴",37.5449,127.1434,11000,"마라탕(100g당):2200;마라샹궈:14000;꿔바로우:13000","인기","Mala House","Malatang (per 100g);Mala xiangguo;Sweet & sour pork"],
+    ["S05","엄마손 백반","식당","명일역","서울 강동구 명일로 77 (가상)","08:00-20:00","토·일요일",37.5519,127.1432,8000,"제육백반:8000;김치찌개:8000;된장찌개:7500","","Eommason Home Meals","Spicy pork set;Kimchi stew;Soybean paste stew"],
+    ["S06","버거스테이션","식당","명일역","서울 강동구 고덕로 15 (가상)","10:30-22:00","연중무휴",37.5499,127.1462,6500,"클래식버거:6500;치즈버거:7500;감자튀김:3000;세트업:3500","","Burger Station","Classic burger;Cheeseburger;Fries;Make it a set"],
+    ["S07","컵밥공장","식당","성덕고 앞","서울 강동구 성덕길 30 (가상)","10:00-20:00","일요일",37.5470,127.1478,5000,"스팸컵밥:4500;치킨마요:5000;불고기컵밥:5500","가성비","Cupbap Factory","Spam rice bowl;Chicken mayo bowl;Bulgogi rice bowl"],
+    ["S08","온기 칼국수","식당","굽은다리역","서울 강동구 양재대로 1520 (가상)","10:30-21:00","화요일",37.5441,127.1420,9000,"바지락칼국수:9000;만두:6000;비빔국수:8500","","Ongi Kalguksu","Clam noodle soup;Dumplings;Spicy mixed noodles"],
+    ["S09","카페 쉼표","카페","성덕고 앞","서울 강동구 성덕길 5 (가상)","08:00-22:00","연중무휴",37.5486,127.1470,2000,"아메리카노:2000;아이스티:2500;카페라떼:3000;크로플:3500","공부하기 좋음","Cafe Swimpyo","Americano;Iced tea;Café latte;Croffle"],
+    ["S10","빈스앤북","카페","명일역","서울 강동구 명일로 120 (가상)","09:00-23:00","연중무휴",37.5515,127.1449,3500,"아메리카노:3500;바닐라라떼:4800;조각케이크:6000","콘센트 많음","Beans & Book","Americano;Vanilla latte;Slice of cake"],
+    ["S11","메가스윗","카페","굽은다리역","서울 강동구 구천면로 200 (가상)","07:30-22:30","연중무휴",37.5455,127.1440,1700,"아메리카노:1700;딸기스무디:3900;초코프라페:4400","","Mega Sweet","Americano;Strawberry smoothie;Choco frappé"],
+    ["S12","오후의 정원","카페","명일역","서울 강동구 고덕로 40 (가상)","11:00-21:00","월요일",37.5494,127.1478,5500,"핸드드립:5500;밀크티:5500;스콘:3800","","Afternoon Garden","Hand-drip coffee;Milk tea;Scone"],
+    ["S13","GS25 성덕고점","편의점","성덕고 앞","서울 강동구 성덕길 20 (가상)","24시간","연중무휴",37.5476,127.1466,4900,"삼각김밥:1300;컵라면:1500;도시락:4900;우유:1600","24시","GS25 Seongdeok HS","Triangle gimbap;Cup noodles;Lunch box;Milk"],
+    ["S14","CU 굽은다리역점","편의점","굽은다리역","서울 강동구 구천면로 195 (가상)","24시간","연중무휴",37.5452,127.1427,3200,"삼각김밥:1300;샌드위치:3200;음료:1800","24시","CU Gubeundari Stn.","Triangle gimbap;Sandwich;Drinks"],
+    ["S15","세븐일레븐 명일역점","편의점","명일역","서울 강동구 명일로 95 (가상)","24시간","연중무휴",37.5510,127.1440,5300,"도시락:5300;핫바:2500;컵라면:1500","24시","7-Eleven Myeongil Stn.","Lunch box;Fish cake bar;Cup noodles"],
+    ["S16","이마트24 명일로점","편의점","명일역","서울 강동구 명일로 60 (가상)","06:00-24:00","연중무휴",37.5524,127.1425,2800,"김밥:2800;샐러드:4500;음료:1900","","emart24 Myeongil-ro","Gimbap;Salad;Drinks"],
+    ["S17","붕어빵 아저씨","간식","성덕고 앞","서울 강동구 성덕길 25 (가상)","14:00-20:00","일요일",37.5472,127.1460,2000,"팥붕어빵(3개):2000;슈크림붕어빵(3개):2000","겨울 한정","Fish Bread Stand","Red bean fish bread (3);Custard fish bread (3)"],
+    ["S18","달콤 탕후루","간식","굽은다리역","서울 강동구 구천면로 178 (가상)","12:00-22:00","연중무휴",37.5446,127.1445,4000,"딸기탕후루:4000;샤인머스캣:5000;귤탕후루:3000","","Dalkom Tanghulu","Strawberry tanghulu;Shine Muscat tanghulu;Tangerine tanghulu"],
+    ["S19","왕꽈배기","간식","명일역","서울 강동구 명일로 88 (가상)","10:00-20:00","월요일",37.5503,127.1438,1500,"꽈배기:1500;찹쌀도너츠:1500;핫도그:2500","가성비","Wang Kkwabaegi","Twisted doughnut;Rice doughnut;Corn dog"],
+    ["S20","젤라또 랩","간식","명일역","서울 강동구 고덕로 28 (가상)","12:00-22:00","연중무휴",37.5490,127.1468,5000,"싱글컵:5000;더블컵:7500;아포가토:6500","","Gelato Lab","Single cup;Double cup;Affogato"]
+  ],
+
+  /* 지도 기준점 — 카카오맵에서는 address/keyword 로 실제 좌표를 찾아 덮어씀 */
+  LANDMARKS: [
+    { id: "school", name: "성덕고등학교", type: "school",  lat: 37.5478, lng: 127.1468, address: "서울 강동구 구천면로 396" },
+    { id: "gubeun", name: "굽은다리역",   type: "station", lat: 37.5452, lng: 127.1432, keyword: "굽은다리역 5호선" },
+    { id: "myeong", name: "명일역",       type: "station", lat: 37.5511, lng: 127.1444, keyword: "명일역 5호선" }
+  ]
+};
+
+</script>
+  <script>
+/* ===== js/data-source.js ===== */
+/* =========================================================
+ * BIZGUILD MAP — 데이터 소스 어댑터
+ * 화면 코드(app.js)는 loadStores() 결과만 사용합니다.
+ * 구글 스프레드시트로 바꿀 때는 이 파일만 수정하면 됩니다.
+ * ========================================================= */
+
+window.BizguildSource = (function () {
+  const D = window.BIZGUILD_DATA;
+
+  /** "라면:3500;김밥:3000" → [{name:"라면", price:3500}, ...] */
+  function parseMenu(text) {
+    return String(text || "")
+      .split(";")
+      .map(s => s.trim())
+      .filter(Boolean)
+      .map(item => {
+        const i = item.lastIndexOf(":");
+        return {
+          name: item.slice(0, i).trim(),
+          price: Number(String(item.slice(i + 1)).replace(/[^0-9]/g, "")) || 0
+        };
+      });
+  }
+
+  /** 시트의 한 행(배열) → 가게 객체 */
+  function rowToStore(row, columns) {
+    const r = {};
+    columns.forEach((key, i) => (r[key] = row[i]));
+    const menu = parseMenu(r.menu);
+    /* 번역 칸 수집: name_en, menu_en, name_zh ... */
+    const i18n = {};
+    Object.keys(r).forEach(key => {
+      const m = key.match(/^(name|menu)_([a-z]{2})$/);
+      if (!m || !String(r[key] || "").trim()) return;
+      const lang = (i18n[m[2]] = i18n[m[2]] || {});
+      if (m[1] === "name") lang.name = String(r[key]).trim();
+      else lang.menu = String(r[key]).split(";").map(x => x.trim());
+    });
+    return {
+      id: String(r.id),
+      i18n,
+      name: String(r.name),
+      category: String(r.category),
+      area: String(r.area || ""),
+      address: String(r.address || ""),
+      hours: String(r.hours || ""),
+      closed: String(r.closed || ""),
+      lat: Number(r.lat),
+      lng: Number(r.lng),
+      tag: String(r.tag || ""),
+      menu,
+      /* 대표가격: 시트의 price 칸, 비어 있으면 가장 싼 메뉴 가격 */
+      price: Number(String(r.price || "").replace(/[^0-9]/g, "")) ||
+             (menu.length ? Math.min(...menu.map(m => m.price)) : 0)
+    };
+  }
+
+  /** 현재: 코드 내부 배열 사용 */
+  async function loadStores() {
+    return D.STORE_ROWS.map(row => rowToStore(row, D.STORE_COLUMNS));
+  }
+
+  /* ---- 구글 스프레드시트 전환 예시 (나중에 사용) ----------------
+   * 1) 시트 > 파일 > 공유 > 웹에 게시 > CSV 형식 링크 복사
+   * 2) 아래 SHEET_CSV_URL 에 붙여넣고 loadStores 를 교체
+   *
+   * const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/.../pub?output=csv";
+   * async function loadStores() {
+   *   const text = await (await fetch(SHEET_CSV_URL)).text();
+   *   const [header, ...rows] = parseCsv(text);
+   *   return rows.map(row => rowToStore(row, header));
+   * }
+   * --------------------------------------------------------------- */
+
+  return {
+    loadStores,
+    landmarks: D.LANDMARKS,
+    parseMenu,
+    rowToStore
+  };
+})();
+
+</script>
+  <script>
+/* ===== js/map-schematic.js ===== */
+/* =========================================================
+ * BIZGUILD MAP — 개략도 지도 (카카오맵 연결 전/실패 시 사용)
+ * map-kakao.js 와 같은 인터페이스를 제공합니다.
+ * ========================================================= */
+window.BizguildMaps = window.BizguildMaps || {};
+
+window.BizguildMaps.schematic = {
+  async create(root, opts) {
+    const BOUNDS = { lat0: 37.5430, lat1: 37.5540, lng0: 127.1395, lng1: 127.1500 };
+    const WORLD = { w: 758, h: 1000 };
+    const project = (lat, lng) => ({
+      x: (lng - BOUNDS.lng0) / (BOUNDS.lng1 - BOUNDS.lng0) * WORLD.w,
+      y: (BOUNDS.lat1 - lat) / (BOUNDS.lat1 - BOUNDS.lat0) * WORLD.h
+    });
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+    root.insertAdjacentHTML("beforeend", `
+      <svg class="map-svg" aria-hidden="true"></svg>
+      <div class="map-layer" data-layer="landmarks"></div>
+      <div class="map-layer" data-layer="markers"></div>`);
+    const svg = root.querySelector(".map-svg");
+    const lmLayer = root.querySelector('[data-layer="landmarks"]');
+    const mkLayer = root.querySelector('[data-layer="markers"]');
+
+    let term = s => s;
+    let markers = [], landmarks = [];
+    const size = () => { const r = root.getBoundingClientRect(); return { w: r.width, h: r.height }; };
+    const view = { cx: 0, cy: 0, s: 1 };
+
+    /* ---------- 배경 지도 ---------- */
+    function buildSVG() {
+      const parts = [];
+      const xs = [0, 120, 300, 470, 650, WORLD.w];
+      const ys = [0, 250, 420, 640, 820, WORLD.h];
+      for (let i = 0; i < xs.length - 1; i++) for (let j = 0; j < ys.length - 1; j++) {
+        const x0 = xs[i] + 12, x1 = xs[i + 1] - 12, y0 = ys[j] + 12, y1 = ys[j + 1] - 12;
+        const midY = (y0 + y1) / 2, midX = (x0 + x1) / 2;
+        if ((i + j) % 2) {
+          parts.push(`<rect class="block" x="${x0}" y="${y0}" width="${x1 - x0}" height="${midY - y0 - 5}" rx="4"/>`);
+          parts.push(`<rect class="block" x="${x0}" y="${midY + 5}" width="${x1 - x0}" height="${y1 - midY - 5}" rx="4"/>`);
+        } else {
+          parts.push(`<rect class="block" x="${x0}" y="${y0}" width="${midX - x0 - 5}" height="${y1 - y0}" rx="4"/>`);
+          parts.push(`<rect class="block" x="${midX + 5}" y="${y0}" width="${x1 - midX - 5}" height="${y1 - y0}" rx="4"/>`);
+        }
+      }
+      parts.push(`<rect class="park" x="482" y="332" width="156" height="76" rx="8"/>`);
+      parts.push(`<text class="park-label" x="560" y="374" text-anchor="middle">${term("어린이공원")}</text>`);
+      parts.push(`<rect class="park" x="12" y="432" width="96" height="196" rx="8"/>`);
+      parts.push(`<rect class="school-ground" x="482" y="500" width="156" height="128" rx="8"/>`);
+      const minor = ["M120 0V1000", "M470 0V1000", "M650 0V1000", "M0 420H758", "M0 640H758", "M300 250V1000"];
+      const mid = ["M0 250L758 290", "M300 652L758 664"];
+      const main = ["M235 1000L267 800L354 264L397 0", "M0 830L758 790"];
+      minor.forEach(d => parts.push(`<path class="road-edge" d="${d}" stroke-width="12"/>`));
+      mid.forEach(d => parts.push(`<path class="road-edge" d="${d}" stroke-width="18"/>`));
+      main.forEach(d => parts.push(`<path class="main-edge" d="${d}" stroke-width="30"/>`));
+      minor.forEach(d => parts.push(`<path class="road" d="${d}" stroke-width="9"/>`));
+      mid.forEach(d => parts.push(`<path class="road" d="${d}" stroke-width="15"/>`));
+      main.forEach(d => parts.push(`<path class="main" d="${d}" stroke-width="26"/>`));
+      parts.push(`<path class="subway" d="M235 1000L267 800L354 264L397 0"/>`);
+      parts.push(`<text class="road-label" transform="translate(325 470) rotate(-80.8)" text-anchor="middle">${term("명일로")}</text>`);
+      parts.push(`<text class="road-label" x="600" y="806" text-anchor="middle">${term("양재대로")}</text>`);
+      parts.push(`<text class="road-label" x="600" y="276" text-anchor="middle" transform="rotate(3 600 276)">${term("고덕로")}</text>`);
+      parts.push(`<text class="road-label" x="700" y="652" text-anchor="middle">${term("성덕길")}</text>`);
+      svg.innerHTML = parts.join("");
+    }
+
+    /* ---------- 좌표 변환 / 그리기 ---------- */
+    function toScreen(lat, lng) {
+      const { w, h } = size(), p = project(lat, lng);
+      return { x: (p.x - view.cx) * view.s + w / 2, y: (p.y - view.cy) * view.s + h / 2 };
+    }
+    function place() {
+      mkLayer.querySelectorAll("[data-marker]").forEach((el, i) => {
+        const m = markers[i]; if (!m) return;
+        const p = toScreen(m.lat, m.lng);
+        el.style.left = p.x + "px"; el.style.top = p.y + "px";
+      });
+      lmLayer.querySelectorAll("[data-lm]").forEach((el, i) => {
+        const l = landmarks[i]; if (!l) return;
+        const p = toScreen(l.lat, l.lng);
+        el.style.left = p.x + "px"; el.style.top = p.y + "px";
+      });
+    }
+    function apply() {
+      const { w, h } = size();
+      if (!w) return;
+      const vw = w / view.s, vh = h / view.s;
+      svg.setAttribute("viewBox", `${view.cx - vw / 2} ${view.cy - vh / 2} ${vw} ${vh}`);
+      root.classList.toggle("show-labels", view.s > w / 330);
+      place();
+    }
+    const limits = () => { const { w } = size(); return { min: w / 900, max: w / 140 }; };
+    function clampView() {
+      const l = limits();
+      view.s = clamp(view.s, l.min, l.max);
+      view.cx = clamp(view.cx, 0, WORLD.w);
+      view.cy = clamp(view.cy, 0, WORLD.h);
+    }
+    function zoomAt(f, sx, sy) {
+      const { w, h } = size();
+      const wx = (sx - w / 2) / view.s + view.cx, wy = (sy - h / 2) / view.s + view.cy;
+      const l = limits();
+      view.s = clamp(view.s * f, l.min, l.max);
+      view.cx = wx - (sx - w / 2) / view.s;
+      view.cy = wy - (sy - h / 2) / view.s;
+      clampView(); apply();
+    }
+    let animId = 0;
+    function animateTo(t, ms = 380) {
+      const from = { ...view }, t0 = performance.now(), id = ++animId;
+      const ease = x => 1 - Math.pow(1 - x, 3);
+      (function step(now) {
+        if (id !== animId) return;
+        const k = Math.min(1, (now - t0) / ms), e = ease(k);
+        view.cx = from.cx + (t.cx - from.cx) * e;
+        view.cy = from.cy + (t.cy - from.cy) * e;
+        view.s = from.s + (t.s - from.s) * e;
+        apply();
+        if (k < 1) requestAnimationFrame(step);
+      })(t0);
+    }
+
+    /* ---------- 제스처 ---------- */
+    const pts = new Map();
+    let moved = false, last = null, pinch = null;
+    root.addEventListener("pointerdown", e => {
+      animId++;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size === 1) { moved = false; last = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY }; }
+      if (pts.size === 2) { const [a, b] = Array.from(pts.values()); pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) }; moved = true; }
+    });
+    window.addEventListener("pointermove", e => {
+      if (!pts.has(e.pointerId)) return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size === 2 && pinch) {
+        const [a, b] = Array.from(pts.values());
+        const d = Math.hypot(a.x - b.x, a.y - b.y), r = root.getBoundingClientRect();
+        zoomAt(d / pinch.d, (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top);
+        pinch.d = d; return;
+      }
+      if (pts.size === 1 && last) {
+        if (!moved && Math.hypot(e.clientX - last.sx, e.clientY - last.sy) > 6) { moved = true; root.classList.add("is-dragging"); }
+        if (moved) {
+          view.cx -= (e.clientX - last.x) / view.s;
+          view.cy -= (e.clientY - last.y) / view.s;
+          clampView(); apply();
+        }
+        last.x = e.clientX; last.y = e.clientY;
+      }
+    });
+    const end = e => {
+      if (!pts.has(e.pointerId)) return;
+      pts.delete(e.pointerId);
+      if (pts.size < 2) pinch = null;
+      if (pts.size === 1) { const p = Array.from(pts.values())[0]; last = { x: p.x, y: p.y, sx: p.x, sy: p.y }; }
+      if (pts.size === 0) { root.classList.remove("is-dragging"); setTimeout(() => (moved = false), 0); }
+    };
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+    root.addEventListener("wheel", e => {
+      e.preventDefault();
+      const r = root.getBoundingClientRect();
+      zoomAt(Math.exp(-e.deltaY * 0.0018), e.clientX - r.left, e.clientY - r.top);
+    }, { passive: false });
+    root.addEventListener("click", e => {
+      if (moved) return;
+      const m = e.target.closest("[data-marker]");
+      if (m) opts.onMarkerClick(m.dataset.marker);
+    });
+
+    /* ---------- 시작 ---------- */
+    buildSVG();
+    const s0 = project(opts.start.lat, opts.start.lng);
+    Object.assign(view, { cx: s0.x, cy: s0.y, s: size().w / 520 });
+    apply();
+
+    return {
+      provider: "schematic",
+      setLanguage(fn) { term = fn; buildSVG(); apply(); },
+      setLandmarks(list) {
+        landmarks = list;
+        lmLayer.innerHTML = list.map(l => `<div class="landmark landmark--${l.type}" data-lm="${l.id}">${l.html}</div>`).join("");
+        place();
+      },
+      setMarkers(list) {
+        markers = list;
+        mkLayer.innerHTML = list.map(m => `<button class="marker ${m.className}" data-marker="${m.id}" style="--mc:${m.color}" aria-label="${m.aria}">${m.html}</button>`).join("");
+        place();
+      },
+      /* targetY: 지도 영역 위쪽에서부터 대상이 놓일 화면 y(px) */
+      focus(lat, lng, { targetY, zoom } = {}) {
+        const { w, h } = size(), l = limits();
+        let s = zoom === "close" ? Math.max(view.s, w / 320) : zoom === "area" ? w / 520 : view.s;
+        s = clamp(s, l.min, l.max);
+        const p = project(lat, lng);
+        const ty = targetY == null ? h / 2 : targetY;
+        animateTo({ cx: p.x, cy: p.y - (ty - h / 2) / s, s });
+      },
+      zoomIn() { const { w, h } = size(); zoomAt(1.4, w / 2, h / 2); },
+      zoomOut() { const { w, h } = size(); zoomAt(1 / 1.4, w / 2, h / 2); },
+      relayout() { clampView(); apply(); }
+    };
+  }
+};
+
+</script>
+  <script>
+/* ===== js/map-kakao.js ===== */
+/* =========================================================
+ * BIZGUILD MAP — 카카오맵 어댑터
+ * config.js 의 KAKAO_JS_KEY 가 있고, 등록된 도메인에서 열렸을 때 사용됩니다.
+ * map-schematic.js 와 같은 인터페이스를 제공합니다.
+ * ========================================================= */
+window.BizguildMaps = window.BizguildMaps || {};
+
+window.BizguildMaps.kakao = {
+  /* SDK 로드 (autoload=false → kakao.maps.load 로 초기화) */
+  loadSDK(key, timeoutMs = 7000) {
+    return new Promise((resolve, reject) => {
+      if (window.kakao && window.kakao.maps && window.kakao.maps.Map) return resolve();
+      const timer = setTimeout(() => reject(new Error("Kakao SDK timeout")), timeoutMs);
+      const s = document.createElement("script");
+      s.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(key)}&autoload=false&libraries=services`;
+      s.async = true;
+      s.onload = () => {
+        if (!window.kakao || !window.kakao.maps) { clearTimeout(timer); return reject(new Error("Kakao SDK not available")); }
+        window.kakao.maps.load(() => { clearTimeout(timer); resolve(); });
+      };
+      s.onerror = () => { clearTimeout(timer); reject(new Error("Kakao SDK load failed (키 또는 도메인 등록 확인)")); };
+      document.head.appendChild(s);
+    });
+  },
+
+  async create(root, opts) {
+    await this.loadSDK(opts.kakaoKey);
+    const K = window.kakao.maps;
+
+    const box = document.createElement("div");
+    box.className = "kakao-map";
+    root.appendChild(box);
+    root.classList.add("is-kakao");
+
+    const map = new K.Map(box, {
+      center: new K.LatLng(opts.start.lat, opts.start.lng),
+      level: opts.start.kakaoLevel || 4
+    });
+
+    const labelLevel = opts.labelLevel || 3;
+    const syncLabels = () => root.classList.toggle("show-labels", map.getLevel() <= labelLevel);
+    K.event.addListener(map, "zoom_changed", syncLabels);
+    syncLabels();
+
+    let markerOverlays = [], lmOverlays = [];
+    const clear = arr => arr.forEach(o => o.setMap(null));
+
+    function overlay(lat, lng, el, { xAnchor = 0.5, yAnchor = 1, z = 1 } = {}) {
+      const o = new K.CustomOverlay({
+        position: new K.LatLng(lat, lng),
+        content: el, xAnchor, yAnchor, zIndex: z, clickable: true
+      });
+      o.setMap(map);
+      return o;
+    }
+
+    /* 대상 좌표를 화면 (가로 중앙, targetY) 에 오도록 이동 */
+    function panToTarget(lat, lng, targetY) {
+      const proj = map.getProjection();
+      const h = box.getBoundingClientRect().height, w = box.getBoundingClientRect().width;
+      const ty = targetY == null ? h / 2 : Math.min(targetY, h - 20);
+      const p = proj.containerPointFromCoords(new K.LatLng(lat, lng));
+      const c = proj.containerPointFromCoords(map.getCenter());
+      const next = proj.coordsFromContainerPoint(new K.Point(c.x + (p.x - w / 2), c.y + (p.y - ty)));
+      map.panTo(next);
+    }
+
+    return {
+      provider: "kakao",
+      /* 주소(address)·키워드(keyword)로 실제 좌표 찾기. 실패하면 기존 좌표 유지 */
+      async resolve(list) {
+        const geo = new K.services.Geocoder(), places = new K.services.Places();
+        const OK = K.services.Status.OK;
+        const find = l => new Promise(res => {
+          if (l.address) geo.addressSearch(l.address, (r, s) => res(s === OK ? r[0] : null));
+          else if (l.keyword) places.keywordSearch(l.keyword, (r, s) => res(s === OK ? r[0] : null));
+          else res(null);
+        });
+        await Promise.all(list.map(async l => {
+          const r = await find(l);
+          if (r) { l.lat = Number(r.y); l.lng = Number(r.x); }
+        }));
+        return list;
+      },
+      setLanguage() { /* 카카오 지도 배경 글자는 SDK 가 처리 */ },
+      setLandmarks(list) {
+        clear(lmOverlays);
+        lmOverlays = list.map(l => {
+          const el = document.createElement("div");
+          el.className = `landmark landmark--${l.type} landmark--kakao`;
+          el.innerHTML = l.html;
+          return overlay(l.lat, l.lng, el, { yAnchor: 0.5, z: 1 });
+        });
+      },
+      setMarkers(list) {
+        clear(markerOverlays);
+        markerOverlays = list.map(m => {
+          const el = document.createElement("button");
+          el.className = `marker marker--kakao ${m.className}`;
+          el.style.setProperty("--mc", m.color);
+          el.setAttribute("aria-label", m.aria);
+          el.innerHTML = m.html;
+          el.addEventListener("click", e => { e.stopPropagation(); opts.onMarkerClick(m.id); });
+          return overlay(m.lat, m.lng, el, { z: /is-selected/.test(m.className) ? 10 : 2 });
+        });
+      },
+      focus(lat, lng, { targetY, zoom } = {}) {
+        if (zoom === "close" && map.getLevel() > labelLevel) map.setLevel(labelLevel);
+        if (zoom === "area") map.setLevel(opts.start.kakaoLevel || 4);
+        panToTarget(lat, lng, targetY);
+      },
+      zoomIn() { map.setLevel(map.getLevel() - 1, { animate: { duration: 250 } }); },
+      zoomOut() { map.setLevel(map.getLevel() + 1, { animate: { duration: 250 } }); },
+      relayout() { map.relayout(); }
+    };
+  }
+};
+
+</script>
+  <script>
+/* ===== js/app.js ===== */
+/* =========================================================
+ * BIZGUILD MAP — 화면/동작 코드
+ * - 데이터: BizguildSource.loadStores()
+ * - 지도:   BizguildMaps.kakao / BizguildMaps.schematic (같은 인터페이스)
+ * - 언어:   BIZGUILD_I18N
+ * ========================================================= */
+(function () {
+  "use strict";
+
+  const CFG = window.BIZGUILD_CONFIG;
+  const L10N = window.BIZGUILD_I18N;
+
+  /* ---------------- 설정 ---------------- */
+  const CATEGORIES = [
+    { key: "식당",   color: "var(--c-food)" },
+    { key: "카페",   color: "var(--c-cafe)" },
+    { key: "편의점", color: "var(--c-conv)" },
+    { key: "간식",   color: "var(--c-snack)" }
+  ];
+  const PRICE_FILTERS = [0, 5000, 10000, 15000];
+  const AREAS = ["굽은다리역", "명일역", "성덕고 앞"];
+
+  const ICONS = {
+    "식당":   '<path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 21V3c-1.9 0-3.2 2.2-3.2 5.3V13H17"/>',
+    "카페":   '<path d="M5 8h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5V8Z"/><path d="M16 9.5h1.4a2.5 2.5 0 0 1 0 5H16M8.5 3.5v2M12.5 3.5v2"/>',
+    "편의점": '<path d="M5 8h14l-1.2 12H6.2L5 8Z"/><path d="M9 10V6.5a3 3 0 0 1 6 0V10"/>',
+    "간식":   '<path d="M6.5 10.5a5.5 5.5 0 0 1 11 0Z"/><path d="m7 10.5 5 10.5 5-10.5"/>'
+  };
+  const I = {
+    star: '<svg viewBox="0 0 24 24"><path d="m12 3.6 2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.6 9.7l5.8-.8Z"/></svg>',
+    back: '<svg viewBox="0 0 24 24"><path d="M15 5 8 12l7 7"/></svg>',
+    pin: '<svg viewBox="0 0 24 24"><path d="M12 21s-6.5-5.8-6.5-11A6.5 6.5 0 0 1 18.5 10c0 5.2-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.3"/></svg>',
+    clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
+    won: '<svg viewBox="0 0 24 24"><path d="m4 7 3 10 3-8 2 0 3 8 3-10M3 11h18M3 14h18"/></svg>',
+    copy: '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/></svg>',
+    check: '<svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
+    school: '<svg viewBox="0 0 24 24"><path d="M12 3 1.5 8.2 12 13.4l8.4-4.2V15h1.8V8.2L12 3Zm-6.3 9.4v3.8c0 1.8 2.8 3.3 6.3 3.3s6.3-1.5 6.3-3.3v-3.8L12 15.6l-6.3-3.2Z"/></svg>'
+  };
+
+  /* ---------------- 저장소 (localStorage, 실패 시 메모리) ---------------- */
+  const mem = {};
+  const store = {
+    get(k, fallback) {
+      try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; }
+      catch (e) { return k in mem ? mem[k] : fallback; }
+    },
+    set(k, v) {
+      mem[k] = v;
+      try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 메모리만 사용 */ }
+    }
+  };
+  const KEY_FAV = "bizguild.favorites";
+  const KEY_REPORT = "bizguild.reports";
+  const KEY_LANG = "bizguild.lang";
+
+  /* ---------------- 언어 ---------------- */
+  function detectLang() {
+    const saved = store.get(KEY_LANG, null);
+    if (saved && L10N.UI[saved]) return saved;
+    const nav = (navigator.language || "ko").slice(0, 2).toLowerCase();
+    return L10N.UI[nav] ? nav : L10N.DEFAULT;
+  }
+
+  /* ---------------- 상태 ---------------- */
+  const state = {
+    stores: [],
+    byId: {},
+    query: "",
+    category: "전체",
+    maxPrice: 0,
+    sort: "default",
+    favs: new Set(store.get(KEY_FAV, [])),
+    selectedId: null,
+    sheet: "peek",
+    tab: "map",
+    lang: detectLang()
+  };
+  let map = null;
+
+  /* ---------------- 번역 도우미 ---------------- */
+  function t(key, vars) {
+    let s = (L10N.UI[state.lang] || {})[key];
+    if (s == null) s = L10N.UI[L10N.DEFAULT][key] || key;
+    if (vars) Object.keys(vars).forEach(k => (s = s.replace(`{${k}}`, vars[k])));
+    return s;
+  }
+  const term = word => (state.lang === "ko" ? word : ((L10N.TERMS[word] || {})[state.lang] || word));
+  function dataLangs() { return state.lang === "ko" ? [] : [state.lang].concat(L10N.DATA_FALLBACK[state.lang] || []); }
+  function storeName(s) {
+    for (const l of dataLangs()) if (s.i18n[l] && s.i18n[l].name) return s.i18n[l].name;
+    return s.name;
+  }
+  function menuName(s, i) {
+    for (const l of dataLangs()) if (s.i18n[l] && s.i18n[l].menu && s.i18n[l].menu[i]) return s.i18n[l].menu[i];
+    return s.menu[i].name;
+  }
+  const hoursText = s => term(s.hours);
+  const won = n => state.lang === "ko" ? n.toLocaleString("ko-KR") + "원" : "₩" + n.toLocaleString("en-US");
+
+  /* ---------------- 유틸 ---------------- */
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const norm = s => String(s).toLowerCase().replace(/\s+/g, "");
+  const catColor = key => (CATEGORIES.find(c => c.key === key) || {}).color || "var(--ink-3)";
+  const catIcon = key => `<svg viewBox="0 0 24 24">${ICONS[key] || ""}</svg>`;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  function highlight(text, q) {
+    const safe = esc(text);
+    const n = String(q || "").trim();
+    if (!n) return safe;
+    const idx = text.toLowerCase().indexOf(n.toLowerCase());
+    if (idx < 0) return safe;
+    return esc(text.slice(0, idx)) + "<mark>" + esc(text.slice(idx, idx + n.length)) + "</mark>" + esc(text.slice(idx + n.length));
+  }
+
+  let toastTimer;
+  function toast(msg) {
+    const el = $("#toast");
+    el.textContent = msg;
+    el.classList.add("is-show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove("is-show"), 1800);
+  }
+
+  /* 영업 상태 */
+  function openStatus(s, now = new Date()) {
+    const days = ["일", "월", "화", "수", "목", "금", "토"];
+    const closed = s.closed.replace(/요일/g, "");
+    if (s.closed !== "연중무휴" && closed.includes(days[now.getDay()])) return { text: t("status.dayoff"), open: false };
+    if (/24/.test(s.hours) && !/-/.test(s.hours)) return { text: t("status.24h"), open: true };
+    const m = s.hours.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+    if (!m) return { text: "", open: null };
+    const start = +m[1] * 60 + +m[2];
+    let end = +m[3] * 60 + +m[4];
+    let cur = now.getHours() * 60 + now.getMinutes();
+    if (end <= start) { end += 1440; if (cur < start) cur += 1440; }
+    const open = cur >= start && cur < end;
+    return { text: open ? t("status.open") : t("status.closed"), open };
+  }
+
+  /* ---------------- 필터 / 정렬 ---------------- */
+  function haystack(s) {
+    const parts = [s.name, s.category, s.area, s.address, s.tag, ...s.menu.map(m => m.name)];
+    Object.values(s.i18n).forEach(x => { if (x.name) parts.push(x.name); if (x.menu) parts.push(...x.menu); });
+    if (state.lang !== "ko") parts.push(term(s.category), term(s.area), s.tag ? term(s.tag) : "");
+    return norm(parts.join(" "));
+  }
+  function matches(s) {
+    if (state.category !== "전체" && s.category !== state.category) return false;
+    if (state.maxPrice && s.price > state.maxPrice) return false;
+    const q = norm(state.query);
+    if (q && !haystack(s).includes(q)) return false;
+    return true;
+  }
+  function sortList(list) {
+    const arr = list.slice();
+    const byName = (a, b) => storeName(a).localeCompare(storeName(b), state.lang);
+    if (state.sort === "priceAsc") arr.sort((a, b) => a.price - b.price || byName(a, b));
+    if (state.sort === "priceDesc") arr.sort((a, b) => b.price - a.price || byName(a, b));
+    return arr;
+  }
+  const visibleStores = () => sortList(state.stores.filter(matches));
+
+  /* ---------------- 카드 ---------------- */
+  function cardHTML(s) {
+    const st = openStatus(s);
+    const q = state.query.trim();
+    let order = s.menu.map((_, i) => i);
+    if (q) {
+      const hit = order.filter(i => norm(menuName(s, i)).includes(norm(q)) || norm(s.menu[i].name).includes(norm(q)));
+      if (hit.length) order = hit.concat(order.filter(i => !hit.includes(i)));
+    }
+    const menuText = order.slice(0, 3).map(i => `${highlight(menuName(s, i), q)} ${s.menu[i].price.toLocaleString()}`).join(" · ");
+    const fav = state.favs.has(s.id);
+    return `
+      <li class="store" data-id="${s.id}" style="--mc:${catColor(s.category)}">
+        <div class="store-ico">${catIcon(s.category)}</div>
+        <div class="store-main">
+          <div class="store-name"><span>${highlight(storeName(s), q)}</span>${s.tag ? `<i class="badge badge--tag">${esc(term(s.tag))}</i>` : ""}</div>
+          <div class="store-meta">
+            <span>${esc(term(s.category))}</span><i class="sep"></i><span>${esc(term(s.area))}</span>
+            ${st.text ? `<i class="sep"></i><span class="status ${st.open ? "status--open" : "status--closed"}">${st.text}</span>` : ""}
+          </div>
+          <div class="store-menu">${menuText}</div>
+        </div>
+        <div class="store-side">
+          <button class="fav-btn ${fav ? "is-on" : ""}" data-fav="${s.id}" aria-label="${fav ? t("fav.remove") : t("fav.add")}" aria-pressed="${fav}">${I.star}</button>
+          <div class="price-tag"><small>${t("card.rep")}</small>${won(s.price)}</div>
+        </div>
+      </li>`;
+  }
+
+  /* ---------------- 목록 렌더 ---------------- */
+  function renderList() {
+    const list = visibleStores();
+    $("#storeList").innerHTML = list.map(cardHTML).join("");
+    $("#listEmpty").hidden = list.length > 0;
+    $("#resultCount").textContent = list.length;
+    const q = state.query.trim();
+    $("#resultTitle").textContent = q ? t("list.search", { q }) : state.category === "전체" ? t("list.nearby") : term(state.category);
+    renderMarkers(list);
+  }
+
+  function renderFavs() {
+    const list = sortList(state.stores.filter(s => state.favs.has(s.id)));
+    $("#favList").innerHTML = list.map(cardHTML).join("");
+    $("#favEmpty").hidden = list.length > 0;
+    $("#favSub").textContent = t("fav.sub", { n: list.length });
+    const b = $("#favBadge");
+    b.hidden = state.favs.size === 0;
+    b.textContent = state.favs.size;
+  }
+
+  function toggleFav(id) {
+    const on = !state.favs.has(id);
+    on ? state.favs.add(id) : state.favs.delete(id);
+    store.set(KEY_FAV, Array.from(state.favs));
+    toast(on ? t("toast.favAdded") : t("toast.favRemoved"));
+    renderList();
+    renderFavs();
+    if (state.selectedId === id) renderDetail();
+  }
+
+  /* ---------------- 칩 ---------------- */
+  function renderChips() {
+    const cats = [{ key: "전체" }].concat(CATEGORIES);
+    $("#categoryChips").innerHTML = cats.map(c => `
+      <button class="chip ${state.category === c.key ? "is-on" : ""}" data-cat="${c.key}" role="tab" aria-selected="${state.category === c.key}">
+        ${c.color ? `<i class="dot" style="--cc:${c.color}"></i>` : ""}${esc(term(c.key))}
+      </button>`).join("");
+    $("#priceChips").innerHTML = `<span class="chip-label">${t("filter.priceLabel")}</span>` + PRICE_FILTERS.map(p => `
+      <button class="chip ${state.maxPrice === p ? "is-on" : ""}" data-price="${p}">${t(p ? "price." + p : "price.all")}</button>`).join("");
+  }
+
+  /* ---------------- 지도 연결 ---------------- */
+  function renderMarkers(list) {
+    if (!map) return;
+    const ids = new Set(list.map(s => s.id));
+    if (state.selectedId) ids.add(state.selectedId);
+    map.setMarkers(state.stores.filter(s => ids.has(s.id)).map(s => ({
+      id: s.id, lat: s.lat, lng: s.lng,
+      color: catColor(s.category),
+      aria: esc(storeName(s)),
+      className: [s.id === state.selectedId ? "is-selected" : "", state.favs.has(s.id) ? "is-fav" : ""].join(" "),
+      html: `<span class="pin">${catIcon(s.category)}</span><span class="m-label">${esc(storeName(s))}</span>`
+    })));
+  }
+  function renderLandmarks() {
+    if (!map) return;
+    map.setLandmarks(BizguildSource.landmarks.map(l => ({
+      id: l.id, lat: l.lat, lng: l.lng, type: l.type,
+      html: `<span class="lm-dot">${l.type === "station" ? "5" : I.school}</span><span class="lm-name">${esc(term(l.name))}</span>`
+    })));
+  }
+
+  /* 상단바·시트에 가리지 않는 영역의 세로 중앙 */
+  function focusTargetY() {
+    const topH = $("#topbar").getBoundingClientRect().height;
+    const viewH = $("#map").getBoundingClientRect().height;
+    const visibleBottom = viewH - sheetHeight(state.sheet === "full" ? "half" : state.sheet);
+    return (topH + visibleBottom) / 2;
+  }
+  function recenterSchool() {
+    const sc = BizguildSource.landmarks.find(l => l.type === "school");
+    map && map.focus(sc.lat, sc.lng, { targetY: focusTargetY(), zoom: "area" });
+  }
+
+  async function initMap() {
+    const root = $("#map");
+    const opts = {
+      start: CFG.START,
+      kakaoKey: CFG.KAKAO_JS_KEY,
+      labelLevel: CFG.KAKAO_LABEL_LEVEL,
+      onMarkerClick: id => openDetail(id)
+    };
+    const wantKakao = CFG.MAP_PROVIDER === "kakao" || (CFG.MAP_PROVIDER === "auto" && CFG.KAKAO_JS_KEY);
+    if (wantKakao) {
+      try { map = await BizguildMaps.kakao.create(root, opts); }
+      catch (e) {
+        console.warn("[BIZGUILD] 카카오맵을 불러오지 못해 개략도로 표시합니다:", e.message);
+        root.classList.remove("is-kakao");
+        $$(".kakao-map", root).forEach(n => n.remove());
+      }
+    }
+    if (!map) map = await BizguildMaps.schematic.create(root, opts);
+    if (map.resolve) await map.resolve(BizguildSource.landmarks);
+    map.setLanguage(term);
+    renderLandmarks();
+    $("#zoomIn").addEventListener("click", () => map.zoomIn());
+    $("#zoomOut").addEventListener("click", () => map.zoomOut());
+    $("#recenter").addEventListener("click", recenterSchool);
+  }
+
+  /* ---------------- 바텀시트 ---------------- */
+  function sheetHeight(st) {
+    const viewH = $("#view-map").getBoundingClientRect().height;
+    const topH = $("#topbar").getBoundingClientRect().height;
+    if (st === "full") return Math.max(200, viewH - topH);
+    if (st === "half") return Math.round(viewH * 0.48);
+    return 152;
+  }
+  function setSheet(st) {
+    state.sheet = st;
+    const sh = $("#sheet");
+    sh.dataset.state = st;
+    sh.style.height = sheetHeight(st) + "px";
+    updateControls(sheetHeight(st));
+  }
+  function updateControls(h) {
+    const c = $("#mapControls");
+    c.style.bottom = h + 12 + "px";
+    c.classList.toggle("is-hidden", h > sheetHeight("half") + 40);
+  }
+  function bindSheet() {
+    const sh = $("#sheet");
+    let drag = null;
+    sh.addEventListener("pointerdown", e => {
+      if (!e.target.closest("#sheetGrip, .detail-top") || e.target.closest("select, button")) return;
+      drag = { y: e.clientY, h: sh.getBoundingClientRect().height, moved: false, t: performance.now() };
+      sh.classList.add("is-dragging");
+    });
+    window.addEventListener("pointermove", e => {
+      if (!drag) return;
+      const dy = e.clientY - drag.y;
+      if (Math.abs(dy) > 5) drag.moved = true;
+      const nh = clamp(drag.h - dy, sheetHeight("peek"), sheetHeight("full"));
+      sh.style.height = nh + "px";
+      updateControls(nh);
+    });
+    window.addEventListener("pointerup", e => {
+      if (!drag) return;
+      sh.classList.remove("is-dragging");
+      const cur = sh.getBoundingClientRect().height;
+      const order = ["peek", "half", "full"];
+      if (!drag.moved) {
+        setSheet(state.sheet === "peek" ? "half" : state.sheet === "half" ? "full" : "half");
+      } else {
+        const v = (drag.y - e.clientY) / Math.max(1, performance.now() - drag.t);
+        const target = Math.abs(v) > 0.6
+          ? order[clamp(order.indexOf(state.sheet) + (v > 0 ? 1 : -1), 0, 2)]
+          : order.reduce((best, k) => Math.abs(sheetHeight(k) - cur) < Math.abs(sheetHeight(best) - cur) ? k : best, "peek");
+        setSheet(target);
+      }
+      drag = null;
+    });
+  }
+
+  /* ---------------- 상세 ---------------- */
+  function renderDetail() {
+    const s = state.byId[state.selectedId];
+    const box = $("#detail");
+    if (!s) { box.hidden = true; return; }
+    const st = openStatus(s);
+    const fav = state.favs.has(s.id);
+    const prices = s.menu.map(m => m.price);
+    const repIdx = s.menu.findIndex(m => m.price === s.price);
+    box.style.setProperty("--mc", catColor(s.category));
+    box.innerHTML = `
+      <div class="detail-top">
+        <span class="grip-bar"></span>
+        <div class="detail-bar">
+          <button class="icon-btn" id="detailBack" aria-label="${t("detail.back")}">${I.back}</button>
+        </div>
+      </div>
+      <div class="detail-scroll">
+        <div class="detail-head">
+          <div class="detail-cat">
+            <span class="badge badge--cat">${esc(term(s.category))}</span>
+            ${s.tag ? `<span class="badge badge--tag">${esc(term(s.tag))}</span>` : ""}
+          </div>
+          <h2 class="detail-name">${esc(storeName(s))}</h2>
+          ${state.lang !== "ko" && storeName(s) !== s.name ? `<div class="detail-orig">${esc(s.name)}</div>` : ""}
+          <div class="detail-sub">
+            <span>${esc(term(s.area))}</span>
+            ${st.text ? `<i class="dotsep"></i><span class="status ${st.open ? "status--open" : "status--closed"}">${st.text}</span>` : ""}
+          </div>
+          <div class="detail-actions">
+            <button class="act ${fav ? "is-on" : ""}" data-fav="${s.id}" aria-pressed="${fav}">${I.star}${fav ? t("detail.saved") : t("detail.fav")}</button>
+            <button class="act" id="copyAddr">${I.copy}${t("detail.copy")}</button>
+          </div>
+        </div>
+        <ul class="info">
+          <li><span class="k">${I.won}</span><span class="v"><b>${t("detail.repMenu", { p: won(s.price) })}</b><small>${t("detail.menuCount", { n: s.menu.length })} · ${won(Math.min(...prices))} ~ ${won(Math.max(...prices))}</small></span></li>
+          <li><span class="k">${I.pin}</span><span class="v">${esc(s.address)}</span></li>
+          <li><span class="k">${I.clock}</span><span class="v">${esc(hoursText(s))}<small>${t("detail.closed", { d: esc(term(s.closed)) })}</small></span></li>
+        </ul>
+        <section class="menu-sec">
+          <h3>${t("detail.menu")} <small>${t("detail.priceNote")}</small></h3>
+          <ul class="menu-list">
+            ${s.menu.map((m, i) => `<li><span>${esc(menuName(s, i))}${i === repIdx ? `<i class="cheap">${t("detail.repBadge")}</i>` : ""}</span><span class="mp">${won(m.price)}</span></li>`).join("")}
+          </ul>
+        </section>
+        <p class="data-note">${t("detail.dataNote")}</p>
+      </div>`;
+    box.hidden = false;
+    $("#detailBack").addEventListener("click", closeDetail);
+    $("#copyAddr").addEventListener("click", () => {
+      try { navigator.clipboard.writeText(s.address).then(() => toast(t("toast.copied")), () => toast(s.address)); }
+      catch (e) { toast(s.address); }
+    });
+  }
+
+  function openDetail(id, { focus = true } = {}) {
+    state.selectedId = id;
+    if (state.sheet === "peek") setSheet("half");
+    renderDetail();
+    renderMarkers(visibleStores());
+    $("#detail .detail-scroll").scrollTop = 0;
+    if (focus && map) {
+      const s = state.byId[id];
+      map.focus(s.lat, s.lng, { targetY: focusTargetY(), zoom: "close" });
+    }
+  }
+  function closeDetail() {
+    state.selectedId = null;
+    $("#detail").hidden = true;
+    renderMarkers(visibleStores());
+  }
+
+  /* ---------------- 탭 ---------------- */
+  function goTab(tab) {
+    state.tab = tab;
+    $$(".view").forEach(v => v.classList.toggle("is-active", v.dataset.view === tab));
+    $$(".tab").forEach(b => b.classList.toggle("is-active", b.dataset.go === tab));
+    if (tab === "map") { setSheet(state.sheet); map && map.relayout(); }
+    if (tab === "fav") renderFavs();
+  }
+
+  /* ---------------- 언어 선택 ---------------- */
+  function applyStaticText() {
+    document.documentElement.lang = state.lang;
+    $$("[data-i18n]").forEach(el => (el.textContent = t(el.dataset.i18n)));
+    $$("[data-i18n-ph]").forEach(el => (el.placeholder = t(el.dataset.i18nPh)));
+    $$("[data-i18n-aria]").forEach(el => el.setAttribute("aria-label", t(el.dataset.i18nAria)));
+    const cur = L10N.LANGS.find(l => l.code === state.lang);
+    $$("[data-lang-short]").forEach(el => (el.textContent = cur.short));
+  }
+  function renderLangSheet() {
+    $("#langList").innerHTML = L10N.LANGS.map(l => `
+      <li><button class="lang-opt ${l.code === state.lang ? "is-on" : ""}" data-lang="${l.code}" lang="${l.code}">
+        <span>${l.label}</span>${l.code === state.lang ? I.check : ""}
+      </button></li>`).join("");
+  }
+  function openLangSheet(open) {
+    renderLangSheet();
+    $("#langSheet").hidden = !open;
+  }
+  function setLang(code) {
+    if (!L10N.UI[code]) return;
+    state.lang = code;
+    store.set(KEY_LANG, code);
+    applyStaticText();
+    renderChips();
+    renderList();
+    renderFavs();
+    renderReportForm();
+    renderReports();
+    if (state.selectedId) renderDetail();
+    if (map) { map.setLanguage(term); renderLandmarks(); }
+    $$(".field-err").forEach(e => (e.textContent = ""));
+    $$(".is-invalid").forEach(e => e.classList.remove("is-invalid"));
+  }
+
+  /* ---------------- 제보 ---------------- */
+  const report = { category: "", area: "" };
+  function renderReportForm() {
+    $("#rCategory").innerHTML = CATEGORIES.map(c => `<button type="button" role="radio" aria-checked="${report.category === c.key}" class="${report.category === c.key ? "is-on" : ""}" data-v="${c.key}">${esc(term(c.key))}</button>`).join("");
+    $("#rArea").innerHTML = AREAS.map(a => `<button type="button" role="radio" aria-checked="${report.area === a}" class="${report.area === a ? "is-on" : ""}" data-v="${a}">${esc(term(a))}</button>`).join("");
+  }
+  function renderReports() {
+    const list = store.get(KEY_REPORT, []);
+    $("#myReports").hidden = list.length === 0;
+    $("#reportList").innerHTML = list.map(r => {
+      const d = new Date(r.createdAt);
+      const date = `${d.getMonth() + 1}.${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+      return `<li class="rep">
+        <div class="rep-top"><span class="rep-name">${esc(r.name)}</span><span class="rep-status">${t("report.pending")}</span></div>
+        <div class="rep-meta">${esc(term(r.category))} · ${esc(term(r.area))}${r.menu ? ` · ${esc(r.menu)} ${r.price ? won(r.price) : ""}` : ""} · ${date}</div>
+      </li>`;
+    }).join("");
+  }
+  function bindReport() {
+    const form = $("#reportForm");
+    const setErr = (k, msg, el) => {
+      $(`[data-err="${k}"]`).textContent = msg || "";
+      if (el) el.classList.toggle("is-invalid", !!msg);
+    };
+    $("#rCategory").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; report.category = b.dataset.v; renderReportForm(); setErr("category", "", $("#rCategory")); });
+    $("#rArea").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; report.area = b.dataset.v; renderReportForm(); setErr("area", "", $("#rArea")); });
+    $("#rPrice").addEventListener("input", e => {
+      const n = e.target.value.replace(/[^0-9]/g, "").slice(0, 6);
+      e.target.value = n ? Number(n).toLocaleString("en-US") : "";
+    });
+    form.addEventListener("input", e => { if (e.target.name) setErr(e.target.name === "menu" ? "price" : e.target.name, "", e.target); });
+
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      const name = $("#rName").value.trim();
+      const address = $("#rAddress").value.trim();
+      const menu = $("#rMenu").value.trim();
+      const price = Number($("#rPrice").value.replace(/[^0-9]/g, "")) || 0;
+      let ok = true, first = null;
+      const fail = (k, msg, el) => { ok = false; setErr(k, msg, el); first = first || el; };
+      if (!name) fail("name", t("err.name"), $("#rName"));
+      if (!report.category) fail("category", t("err.category"), $("#rCategory"));
+      if (!report.area) fail("area", t("err.area"), $("#rArea"));
+      if (!address) fail("address", t("err.address"), $("#rAddress"));
+      if (price && !menu) fail("price", t("err.menuName"), $("#rMenu"));
+      if (menu && !price) fail("price", t("err.price"), $("#rPrice"));
+      if (!ok) { first.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+
+      const list = store.get(KEY_REPORT, []);
+      list.unshift({
+        id: "R" + Date.now(),
+        name, category: report.category, area: report.area, address, menu, price,
+        hours: $("#rHours").value.trim(), note: $("#rNote").value.trim(),
+        lang: state.lang,
+        createdAt: new Date().toISOString()
+      });
+      store.set(KEY_REPORT, list);
+      form.reset();
+      report.category = ""; report.area = "";
+      renderReportForm();
+      renderReports();
+      toast(t("toast.reported"));
+      $("#myReports").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  /* ---------------- 이벤트 ---------------- */
+  function bindUI() {
+    const input = $("#searchInput");
+    let timer;
+    input.addEventListener("input", () => {
+      $("#searchClear").hidden = !input.value;
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        state.query = input.value;
+        if (state.selectedId) closeDetail();
+        renderList();
+        if (state.query.trim() && state.sheet === "peek") setSheet("half");
+      }, 120);
+    });
+    input.addEventListener("keydown", e => { if (e.key === "Enter") input.blur(); });
+    $("#searchClear").addEventListener("click", () => {
+      input.value = ""; state.query = ""; $("#searchClear").hidden = true; renderList(); input.focus();
+    });
+
+    $("#categoryChips").addEventListener("click", e => {
+      const b = e.target.closest("[data-cat]"); if (!b) return;
+      state.category = b.dataset.cat;
+      if (state.selectedId) closeDetail();
+      renderChips(); renderList();
+    });
+    $("#priceChips").addEventListener("click", e => {
+      const b = e.target.closest("[data-price]"); if (!b) return;
+      state.maxPrice = Number(b.dataset.price);
+      if (state.selectedId) closeDetail();
+      renderChips(); renderList();
+    });
+    $("#sortSelect").addEventListener("change", e => { state.sort = e.target.value; renderList(); renderFavs(); });
+    $("#resetFilters").addEventListener("click", () => {
+      state.query = ""; state.category = "전체"; state.maxPrice = 0;
+      input.value = ""; $("#searchClear").hidden = true;
+      renderChips(); renderList();
+    });
+
+    document.addEventListener("click", e => {
+      if (e.target.closest("[data-lang-open]")) { openLangSheet(true); return; }
+      const opt = e.target.closest("[data-lang]");
+      if (opt) { setLang(opt.dataset.lang); openLangSheet(false); return; }
+      if (e.target.closest("[data-lang-close]")) { openLangSheet(false); return; }
+      const favBtn = e.target.closest("[data-fav]");
+      if (favBtn) { e.stopPropagation(); toggleFav(favBtn.dataset.fav); return; }
+      const card = e.target.closest(".store[data-id]");
+      if (card) {
+        if (state.tab !== "map") goTab("map");
+        openDetail(card.dataset.id);
+        return;
+      }
+      const go = e.target.closest("[data-go]");
+      if (go) goTab(go.dataset.go);
+    });
+    document.addEventListener("keydown", e => { if (e.key === "Escape") openLangSheet(false); });
+
+    window.addEventListener("resize", () => { setSheet(state.sheet); map && map.relayout(); });
+  }
+
+  /* ---------------- 시작 ---------------- */
+  async function init() {
+    state.stores = await BizguildSource.loadStores();
+    state.stores.forEach(s => (state.byId[s.id] = s));
+    state.favs = new Set(Array.from(state.favs).filter(id => state.byId[id]));
+
+    applyStaticText();
+    renderChips();
+    renderReportForm();
+    renderReports();
+    bindSheet();
+    bindUI();
+    bindReport();
+    setSheet("peek");
+
+    await initMap();
+    renderList();
+    renderFavs();
+    recenterSchool();
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+  else init();
+})();
+
+</script>
+</body>
+</html>
