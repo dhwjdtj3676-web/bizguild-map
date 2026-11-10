@@ -1270,6 +1270,8 @@ window.BizguildMaps.kakao = {
       center: new K.LatLng(opts.start.lat, opts.start.lng),
             level: opts.start.kakaoLevel || 4,
       tileAnimation: false
+            });
+
 
     const labelLevel = opts.labelLevel || 3;
     const syncLabels = () => root.classList.toggle("show-labels", map.getLevel() <= labelLevel);
